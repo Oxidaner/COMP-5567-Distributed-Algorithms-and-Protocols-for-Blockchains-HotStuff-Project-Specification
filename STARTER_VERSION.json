@@ -1,0 +1,19 @@
+{
+  "starter_version": "2026-09-29",
+  "reference_repository": "https://github.com/goudanwang/hotstuff",
+  "reference_commit": "71ef92e2a5c18b1b831c279903f1988569da1623",
+  "task_a": {
+    "basic": 30,
+    "recovery": 2,
+    "malicious_nodes": 3
+  },
+  "task_b": {
+    "basic": 25,
+    "batch_configuration": 2,
+    "transaction_security": 3
+  },
+  "report_and_presentation": 20,
+  "live_demonstration": 10,
+  "individual_contribution": 5,
+  "total": 100
+}

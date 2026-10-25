@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HotStuff · Consensus Lab</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><div class="eyebrow">DISTRIBUTED SYSTEMS / INTERACTIVE LAB</div><h1>HotStuff <span>Consensus Lab</span></h1><p>Student starter: complete Task A consensus and Task B transaction TODOs. Missing functions pause with a TODO message.</p></div>
+      <div class="connection"><i id="connection-dot"></i><span id="connection">Connecting</span><small>Single-process simulation · n = 4 · f = 1</small></div>
+    </header>
+
+    <section class="toolbar" aria-label="Protocol controls">
+      <div class="buttons">
+        <button class="primary" data-action="start">▶ Start</button>
+        <button data-action="pause">Ⅱ Pause</button>
+        <button data-action="step">↦ Next Step</button>
+        <button class="quiet" data-action="reset">↺ Reset</button>
+      </div>
+      <div class="buttons faults">
+        <button class="danger" data-action="crash-leader">Crash Leader</button>
+        <button data-action="recover">Recover Nodes</button>
+        <label class="sr-only" for="byzantine">Vote-withholding node</label>
+        <select id="byzantine"><option value="">Byzantine: Off</option><option value="1">Node 1 withholds votes</option><option value="2">Node 2 withholds votes</option><option value="3">Node 3 withholds votes</option><option value="4">Node 4 withholds votes</option></select>
+      </div>
+    </section>
+    <div id="error" class="error" role="alert" hidden></div>
+
+    <section class="statusbar">
+      <div><small>CURRENT VIEW</small><strong id="view">01</strong></div>
+      <div><small>LEADER</small><strong id="leader">N1</strong></div>
+      <div><small>QUORUM</small><strong>3 <em>/ 4 votes</em></strong></div>
+      <div class="phase"><small id="running">PAUSED · STEP 0</small><strong id="phase">Ready for proposal</strong></div>
+      <span class="tag" id="consistency">Nodes agree</span>
+    </section>
+
+    <section><div class="section-title"><h2><b>01</b> Consensus in Action</h2><span>Proposal → Vote → QC → View change</span></div><div id="nodes" class="nodes"></div></section>
+
+    <div class="workspace">
+      <div class="left-column">
+        <section class="panel">
+          <div class="section-title"><h2><b>02</b> Blockchain</h2><span id="block-count">1 block</span></div>
+          <p class="hint">Select a block to inspect its proposal and certificates. Green: committed. Blue: certified. Dashed: awaiting QC.</p>
+          <div id="blocks" class="blocks" aria-label="All blocks"></div>
+          <div class="chain-label">COMMITTED CHAIN <span id="committed-chain">B0</span></div>
+          <div id="block-detail" class="block-detail"></div>
+          <div class="explanation">3-chain rule: once A ← B ← C are certified in consecutive views, commit A and its uncommitted ancestors. Empty blocks also advance commits.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title"><h2><b>03</b> State Machine</h2><span>Execute only after commit</span></div>
+          <div id="accounts" class="accounts"></div>
+          <form id="transfer-form">
+            <label>From<select id="sender"><option>Alice</option><option>Bob</option><option>Charlie</option></select></label>
+            <label>To<select id="receiver"><option>Bob</option><option>Alice</option><option>Charlie</option></select></label>
+            <label>Amount<input id="amount" type="number" value="10" min="1" max="1000000" step="1" required></label>
+            <button class="primary" type="submit">Submit</button>
+          </form>
+          <div id="tx-message" class="hint" role="status">TRANSFER Alice Bob 10 · Submit to the mempool</div>
+          <div class="subheading">MEMPOOL <span id="mempool-count">0</span></div>
+          <div id="mempool" class="tx-list"></div>
+          <details><summary>Transaction receipts <span id="receipt-count">0</span></summary><div id="receipts" class="tx-list"></div></details>
+        </section>
+      </div>
+
+      <section class="panel event-panel">
+        <div class="section-title"><h2><b>04</b> Event log</h2><span id="event-count">Live events</span></div>
+        <div class="log-legend"><span class="vote">● Vote</span><span class="qc">● QC</span><span class="commit">● Commit</span><span class="fault">● Fault</span></div>
+        <div id="logs" class="logs" aria-label="Protocol event log"></div>
+      </section>
+    </div>
+    <footer>Student starter · Core algorithms intentionally incomplete · No real signatures or network partitions · One event per step · Auto: 0.8 s/step · Timeout: 3 logical ticks, frozen while paused</footer>
+  </main>
+</body>
+</html>
+
