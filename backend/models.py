@@ -7,6 +7,8 @@ class Transaction:
     sender: str
     receiver: str
     amount: int
+    nonce: int | None = None
+    signature: str | None = None
 
 
 @dataclass(frozen=True)
