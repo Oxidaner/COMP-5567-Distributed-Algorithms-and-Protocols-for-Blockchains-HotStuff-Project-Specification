@@ -83,7 +83,34 @@ class HotStuffDemo:
         Call select_transactions(parent) only when the mempool is nonempty;
         otherwise use an empty payload, allowing independent Task A work.
         A6: handle a crashed leader using the timeout event. No balances change."""
-        raise NotImplementedError('TODO A1 implement a leader proposal for the current view.')
+        leader = self.nodes[self.leader_id - 1]
+        if leader.crashed:
+            self.phase = f"Leader N{leader.id} unavailable · waiting for timeout"
+            self.log(f"Leader N{leader.id} unavailable in view {self.view}", "fault")
+            if not any(action == "timeout" for action, _ in self.events):
+                self.events.append(("timeout", self.TIMEOUT_TICKS))
+            return
+
+        parent_id = leader.high_qc.block_id
+        parent = self.blocks.get(parent_id)
+        if parent is None:
+            raise ValueError(f"HighQC references unknown block {parent_id}")
+
+        block_id = f"B{len(self.blocks)}"
+        while block_id in self.blocks:
+            block_id = f"B{int(block_id[1:]) + 1}"
+        transactions = self.select_transactions(parent) if self.mempool else []
+        block = Block(block_id, parent.id, self.view, leader.id, transactions, leader.high_qc)
+
+        self.blocks[block.id] = block
+        self.votes[block.id] = set()
+        for node in self.nodes:
+            if not node.crashed:
+                node.blocks[block.id] = block
+                self.events.append(("vote", (node.id, block.id)))
+
+        self.phase = f"{block.id} proposed · awaiting votes"
+        self.log(f"{block.id} proposed by N{leader.id} · parent {parent.id}", "proposal")
 
     def vote(self, data):
         """A2 implement proposal validation and one safe vote per replica/view.

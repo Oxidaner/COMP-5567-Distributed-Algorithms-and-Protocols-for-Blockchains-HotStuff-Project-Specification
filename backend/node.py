@@ -25,14 +25,33 @@ class Node:
         """A2 test whether block_id descends from ancestor_id, including itself.
         Use local parent links. Unknown or malformed ancestry must not be
         accepted as an extension. Return a Boolean without modifying state."""
-        raise NotImplementedError('TODO A2 test whether block_id descends from ancestor_id, including itself.')
+        # AI-assisted implementation; the student owner must review and explain it.
+        current_id = block_id
+        visited = set()
+        while current_id is not None and current_id not in visited:
+            if current_id == ancestor_id:
+                return True
+            visited.add(current_id)
+            block = self.blocks.get(current_id)
+            if block is None:
+                return False
+            current_id = block.parent_id
+        return False
 
     def can_vote(self, block: Block) -> bool:
         """A2 decide whether this replica may vote for a proposal.
         Enforce availability, current view, one vote per view and the safe-node
         lock rule. Return a Boolean; vote() records the actual cast vote.
         The coordinator validates the proposal leader and parent certificate."""
-        raise NotImplementedError('TODO A2 decide whether this replica may vote for a proposal.')
+        # AI-assisted implementation; the student owner must review and explain it.
+        if self.crashed or self.withhold_vote:
+            return False
+        if block.view != self.view or self.last_voted_view >= block.view:
+            return False
+
+        extends_lock = self.extends(block.parent_id, self.locked_qc.block_id)
+        has_newer_qc = block.qc is not None and block.qc.view > self.locked_qc.view
+        return extends_lock or has_newer_qc
 
     def receive_qc(self, qc: QC) -> list[str]:
         """A4 update certificate/lock state and decide committed block IDs.
