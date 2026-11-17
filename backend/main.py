@@ -54,6 +54,8 @@ class TransferRequest(BaseModel):
     sender: str
     receiver: str
     amount: int = Field(strict=True, ge=1, le=1_000_000)
+    nonce: int | None = Field(default=None, strict=True, ge=0)
+    signature: str | None = None
 
 
 class ByzantineRequest(BaseModel):
@@ -94,7 +96,13 @@ async def control(action: str):
 @app.post("/api/transactions")
 async def submit_transaction(request: TransferRequest):
     try:
-        tx = demo.submit(request.sender, request.receiver, request.amount)
+        tx = demo.submit(
+            request.sender,
+            request.receiver,
+            request.amount,
+            request.nonce,
+            request.signature,
+        )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     return {"transaction_id": tx.id, "state": demo.snapshot()}
