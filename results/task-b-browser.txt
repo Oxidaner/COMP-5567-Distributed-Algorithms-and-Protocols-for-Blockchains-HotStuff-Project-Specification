@@ -1,0 +1,42 @@
+Task B real-browser acceptance
+Date: 2026-11-18T02:13:26.927081+08:00
+Browser: agent-browser owned Chromium session
+Workflow: signed submit, pending retry, Start, commit, Pause, final retry, signed insufficient-funds submit, Start, rejected receipt, Pause, final failure retry, batch=2
+Mobile layout: 390px viewport / 390px scroll width; signed-submit control present (PASS)
+Captured final desktop state and assertions:
+{
+  "accounts": {
+    "Alice": 90,
+    "Bob": 110,
+    "Charlie": 100
+  },
+  "batch": 2,
+  "consistent": true,
+  "nonces": {
+    "Alice": 2,
+    "Bob": 0,
+    "Charlie": 0
+  },
+  "receipts": [
+    {
+      "block": "B1",
+      "error": null,
+      "id": "Tx-7cedd7ac515405a1e5306dd0",
+      "position": 0,
+      "status": "committed"
+    },
+    {
+      "block": "B4",
+      "error": "Insufficient funds",
+      "id": "Tx-3bcead4ed7be994ba55fcfc8",
+      "position": 0,
+      "status": "rejected"
+    }
+  ],
+  "result": "PASS",
+  "retryMessage": "Tx-3bcead4ed7be994ba55fcfc8 · rejected · Same signed request, no duplicate execution",
+  "viewport": {
+    "scrollWidth": 1440,
+    "width": 1440
+  }
+}

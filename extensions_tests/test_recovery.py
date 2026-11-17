@@ -1,5 +1,6 @@
 import unittest
 from backend.hotstuff import HotStuffDemo
+from tests.helpers import submit_signed
 from backend.models import Block, QC
 
 class HotStuffTests(unittest.TestCase):
@@ -24,7 +25,7 @@ class HotStuffTests(unittest.TestCase):
 
     def test_crash_leader_timeout_and_recovery(self):
         self.demo.crash_leader()
-        self.demo.submit("Alice", "Bob", 10)
+        submit_signed(self.demo, "Alice", "Bob", 10)
         self.advance_until(lambda: self.demo.view == 2)
         self.assertEqual(self.demo.leader_id, 2)
         self.assertEqual(self.demo.nodes[0].view, 1)
@@ -37,7 +38,7 @@ class HotStuffTests(unittest.TestCase):
 
     def test_one_byzantine_replica_and_leader_rotation(self):
         self.demo.set_byzantine(4)
-        self.demo.submit("Alice", "Bob", 10)
+        submit_signed(self.demo, "Alice", "Bob", 10)
         self.advance_until(lambda: self.demo.view >= 6)
         for block_id, qc in self.demo.qcs.items():
             if block_id != "B0":
@@ -55,7 +56,7 @@ class HotStuffTests(unittest.TestCase):
         self.assert_agreement()
 
     def test_orphaned_transaction_is_reproposed(self):
-        tx = self.demo.submit("Alice", "Bob", 10)
+        tx = submit_signed(self.demo, "Alice", "Bob", 10)
         self.demo.step()  # B1 proposed, but its leader dies before QC.
         self.demo.crash_leader()
         self.advance_until(lambda: self.demo.nodes[1].machine.accounts["Alice"] == 90)
