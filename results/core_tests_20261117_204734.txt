@@ -1,0 +1,106 @@
+Date: 2026-11-17T20:47:34.764478+08:00
+Python: 3.10.11 (v3.10.11:7d4cc5aa85, Apr  4 2023, 19:05:19) [Clang 13.0.0 (clang-1300.0.29.30)]
+Base commit: acfa05c98068c006e3ddd091fbb0c923396a1ae6
+Version note: tested the current working tree, including uncommitted changes.
+Command: /Users/ksy/Desktop/COMP5567-HotStuff/.venv/bin/python -m unittest discover -s tests -v
+Exit code: 0
+Git status before saving this log:
+ M backend/node.py
+?? results/core_tests_20261117_204701.txt
+?? tests/test_form_qc.py
+?? tests/test_node_can_vote.py
+?? tests/test_node_extends.py
+?? tests/test_propose.py
+?? tests/test_vote.py
+
+test_duplicate_vote_cannot_make_quorum (test_form_qc.FormQCTests) ... ok
+test_existing_qc_is_not_dispatched_twice (test_form_qc.FormQCTests) ... ok
+test_four_valid_votes_are_supported (test_form_qc.FormQCTests) ... ok
+test_invalid_extra_ids_are_excluded_from_certificate (test_form_qc.FormQCTests) ... ok
+test_invalid_voter_ids_cannot_make_quorum (test_form_qc.FormQCTests) ... ok
+test_no_votes_cannot_form_qc (test_form_qc.FormQCTests) ... ok
+test_real_dispatch_first_qc_does_not_commit_its_block (test_form_qc.FormQCTests) ... ok
+test_stale_view_is_rejected (test_form_qc.FormQCTests) ... ok
+test_three_valid_votes_form_and_dispatch_qc (test_form_qc.FormQCTests) ... ok
+test_two_votes_cannot_form_qc (test_form_qc.FormQCTests) ... ok
+test_unknown_block_is_rejected (test_form_qc.FormQCTests) ... ok
+test_voter_without_matching_history_is_not_counted (test_form_qc.FormQCTests) ... ok
+test_wrong_vote_block_is_not_counted (test_form_qc.FormQCTests) ... ok
+test_wrong_vote_view_is_not_counted (test_form_qc.FormQCTests) ... ok
+test_initial_snapshot (test_framework.FrameworkTests) ... ok
+test_missing_event_can_be_retried (test_framework.FrameworkTests) ... ok
+test_reset_framework (test_framework.FrameworkTests) ... ok
+test_batching_and_ancestor_deduplication (test_integration.HotStuffTests) ... ok
+test_insufficient_funds_rejected_at_commit (test_integration.HotStuffTests) ... ok
+test_invalid_transaction_inputs (test_integration.HotStuffTests) ... ok
+test_lock_and_one_vote_per_view (test_integration.HotStuffTests) ... ok
+test_reset_clears_faults_events_and_accounts (test_integration.HotStuffTests) ... ok
+test_three_chain_and_transfer (test_integration.HotStuffTests) ... ok
+test_already_voted_in_current_view (test_node_can_vote.NodeCanVoteTests) ... ok
+test_check_does_not_modify_node_state (test_node_can_vote.NodeCanVoteTests) ... ok
+test_conflicting_branch_with_equal_qc_is_rejected (test_node_can_vote.NodeCanVoteTests) ... ok
+test_conflicting_branch_with_newer_qc_is_allowed (test_node_can_vote.NodeCanVoteTests) ... ok
+test_conflicting_branch_with_older_qc_is_rejected (test_node_can_vote.NodeCanVoteTests) ... ok
+test_crashed_node_cannot_vote (test_node_can_vote.NodeCanVoteTests) ... ok
+test_extending_locked_branch_is_allowed (test_node_can_vote.NodeCanVoteTests) ... ok
+test_future_view_is_rejected (test_node_can_vote.NodeCanVoteTests) ... ok
+test_higher_recorded_vote_blocks_older_vote (test_node_can_vote.NodeCanVoteTests) ... ok
+test_old_view_is_rejected (test_node_can_vote.NodeCanVoteTests) ... ok
+test_vote_in_previous_view_does_not_block_current_view (test_node_can_vote.NodeCanVoteTests) ... ok
+test_withholding_node_cannot_vote (test_node_can_vote.NodeCanVoteTests) ... ok
+test_ancestor_does_not_extend_descendant (test_node_extends.NodeExtendsTests) ... ok
+test_cycle_cannot_reach_unrelated_ancestor (test_node_extends.NodeExtendsTests) ... ok
+test_direct_parent (test_node_extends.NodeExtendsTests) ... ok
+test_distant_ancestor (test_node_extends.NodeExtendsTests) ... ok
+test_known_block_extends_itself (test_node_extends.NodeExtendsTests) ... ok
+test_missing_parent_is_not_accepted (test_node_extends.NodeExtendsTests) ... ok
+test_query_does_not_modify_node_state (test_node_extends.NodeExtendsTests) ... ok
+test_sibling_is_not_ancestor (test_node_extends.NodeExtendsTests) ... ok
+test_unknown_block_does_not_extend_itself (test_node_extends.NodeExtendsTests) ... ok
+test_unknown_start (test_node_extends.NodeExtendsTests) ... ok
+test_crashed_leader_does_not_duplicate_timeout (test_propose.ProposeTests) ... ok
+test_crashed_leader_schedules_timeout_without_proposal (test_propose.ProposeTests) ... ok
+test_crashed_replica_receives_no_proposal_or_vote_event (test_propose.ProposeTests) ... ok
+test_distributes_to_all_live_nodes (test_propose.ProposeTests) ... ok
+test_empty_pool_does_not_call_transaction_selection (test_propose.ProposeTests) ... ok
+test_existing_block_id_is_not_overwritten (test_propose.ProposeTests) ... ok
+test_initial_proposal_fields (test_propose.ProposeTests) ... ok
+test_nonempty_pool_calls_selection_with_parent (test_propose.ProposeTests) ... ok
+test_parent_selected_from_leader_high_qc (test_propose.ProposeTests) ... ok
+test_proposal_does_not_vote_certify_commit_or_execute (test_propose.ProposeTests) ... ok
+test_queues_one_vote_event_per_live_node (test_propose.ProposeTests) ... ok
+test_unknown_high_qc_parent_is_rejected (test_propose.ProposeTests) ... ok
+test_empty_chain_commits (test_task_a.TaskATests) ... ok
+test_one_qc_does_not_commit_own_block (test_task_a.TaskATests) ... ok
+test_quorum_not_reached (test_task_a.TaskATests) ... ok
+test_admission_does_not_execute (test_task_b.TaskBTests) ... ok
+test_committed_execution_and_cleanup (test_task_b.TaskBTests) ... ok
+test_insufficient_balance_and_same_id_retry (test_task_b.TaskBTests) ... ok
+test_pool_excludes_only_selected_ancestry (test_task_b.TaskBTests) ... ok
+test_uncommitted_payload_not_executed (test_task_b.TaskBTests) ... ok
+test_crashed_replica_cannot_vote (test_vote.VoteTests) ... ok
+test_duplicate_vote_is_rejected (test_vote.VoteTests) ... ok
+test_fourth_vote_does_not_duplicate_qc_event (test_vote.VoteTests) ... ok
+test_insufficient_available_voters_schedule_one_timeout (test_vote.VoteTests) ... ok
+test_invalid_node_ids_are_rejected (test_vote.VoteTests) ... ok
+test_malformed_registered_qc_is_rejected (test_vote.VoteTests) ... ok
+test_missing_parent_is_rejected (test_vote.VoteTests) ... ok
+test_missing_parent_qc_is_rejected (test_vote.VoteTests) ... ok
+test_parent_qc_block_mismatch_is_rejected (test_vote.VoteTests) ... ok
+test_parent_qc_view_mismatch_is_rejected (test_vote.VoteTests) ... ok
+test_proposal_missing_from_local_node_is_rejected (test_vote.VoteTests) ... ok
+test_same_view_conflicting_vote_is_rejected (test_vote.VoteTests) ... ok
+test_third_vote_schedules_qc_exactly_once (test_vote.VoteTests) ... ok
+test_two_votes_do_not_schedule_qc (test_vote.VoteTests) ... ok
+test_unknown_block_is_rejected (test_vote.VoteTests) ... ok
+test_unregistered_parent_qc_is_rejected (test_vote.VoteTests) ... ok
+test_valid_vote_records_identity_and_history (test_vote.VoteTests) ... ok
+test_voting_does_not_execute_or_commit (test_vote.VoteTests) ... ok
+test_withholding_replica_cannot_vote (test_vote.VoteTests) ... ok
+test_wrong_leader_is_rejected (test_vote.VoteTests) ... ok
+test_wrong_view_is_rejected (test_vote.VoteTests) ... ok
+
+----------------------------------------------------------------------
+Ran 86 tests in 0.038s
+
+OK
