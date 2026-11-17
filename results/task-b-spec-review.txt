@@ -1,0 +1,6 @@
+Task B specification regression verification after fixes
+Unsigned HTTP request: 422; pool unchanged; no debit
+Committed bad signature: persisted rejected receipt at B1/0; canonical ID unreserved
+Later valid request with same ID: committed exactly once; Alice=90; nonce=1
+Re-delivery of rejected B1: same rejection; no additional execution
+All checks: PASS

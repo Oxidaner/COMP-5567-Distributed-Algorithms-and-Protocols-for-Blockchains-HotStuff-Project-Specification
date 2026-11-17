@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HotStuff · Consensus Lab</title>
   <link rel="stylesheet" href="/static/style.css">
-  <script defer src="/static/app.js"></script>
+  <script type="module" src="/static/app.js"></script>
 </head>
 <body>
   <main>
     <header>
-      <div><div class="eyebrow">DISTRIBUTED SYSTEMS / INTERACTIVE LAB</div><h1>HotStuff <span>Consensus Lab</span></h1><p>Student starter: complete Task A consensus and Task B transaction TODOs. Missing functions pause with a TODO message.</p></div>
+      <div><div class="eyebrow">DISTRIBUTED SYSTEMS / INTERACTIVE LAB</div><h1>HotStuff <span>Consensus Lab</span></h1><p>Follow consensus commitment, signed transfers and deterministic execution across four replicas.</p></div>
       <div class="connection"><i id="connection-dot"></i><span id="connection">Connecting</span><small>Single-process simulation · n = 4 · f = 1</small></div>
     </header>
 
@@ -58,9 +58,14 @@
             <label>From<select id="sender"><option>Alice</option><option>Bob</option><option>Charlie</option></select></label>
             <label>To<select id="receiver"><option>Bob</option><option>Alice</option><option>Charlie</option></select></label>
             <label>Amount<input id="amount" type="number" value="10" min="1" max="1000000" step="1" required></label>
-            <button class="primary" type="submit">Submit</button>
+            <button class="primary" type="submit">Sign &amp; submit</button>
           </form>
-          <div id="tx-message" class="hint" role="status">TRANSFER Alice Bob 10 · Submit to the mempool</div>
+          <div class="buttons transaction-controls">
+            <button id="retry-transfer" disabled>Retry last signed transfer</button>
+            <label for="batch-limit">Batch limit</label>
+            <select id="batch-limit"><option>1</option><option>2</option><option selected>5</option></select>
+          </div>
+          <div id="tx-message" class="hint" role="status">Classroom test keys · Signed in this browser · Balances change only after commit</div>
           <div class="subheading">MEMPOOL <span id="mempool-count">0</span></div>
           <div id="mempool" class="tx-list"></div>
           <details><summary>Transaction receipts <span id="receipt-count">0</span></summary><div id="receipts" class="tx-list"></div></details>
@@ -73,7 +78,7 @@
         <div id="logs" class="logs" aria-label="Protocol event log"></div>
       </section>
     </div>
-    <footer>Student starter · Core algorithms intentionally incomplete · No real signatures or network partitions · One event per step · Auto: 0.8 s/step · Timeout: 3 logical ticks, frozen while paused</footer>
+    <footer>Classroom simulation · Ed25519 signatures with public test keys · One event per step · Auto: 0.8 s/step · Timeout: 3 logical ticks, frozen while paused</footer>
   </main>
 </body>
 </html>

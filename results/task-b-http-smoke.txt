@@ -1,0 +1,11 @@
+Task B final live HTTP + CLI verification
+Date: 2026-11-18T02:14:15.647362+08:00
+Python: 3.11
+Unsigned public request: HTTP 422; rejected
+Signed CLI request + committed retry: same ID, Alice=90, nonce=1, one receipt
+Insufficient funds + final retry: rejected receipt, Alice=90 unchanged, nonce=2
+Malformed Unicode signature: HTTP 400; service remains responsive
+Batch limits 1/2/5: accepted; zero rejected
+Reset: balances/nonces/receipts/batch restored
+Result: PASS
+Temporary server stopped

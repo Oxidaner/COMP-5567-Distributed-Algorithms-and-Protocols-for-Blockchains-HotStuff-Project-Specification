@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from .blockchain import StateMachine
 from .models import Block, QC
 
@@ -143,9 +145,31 @@ class Node:
         for block_id in block_ids:
             if block_id not in self.committed_blocks or block_id not in self.blocks:
                 raise ValueError(f"Block {block_id} is not committed on this replica")
+        positions = [self.committed_blocks.index(block_id) for block_id in block_ids]
+        if positions != sorted(positions):
+            raise ValueError("Committed blocks must execute in committed-history order")
+        if positions:
+            requested = set(block_ids)
+            for block_id in self.committed_blocks[:positions[-1] + 1]:
+                if (
+                    self.blocks[block_id].transactions
+                    and block_id not in self.machine.execution_receipts
+                    and block_id not in requested
+                ):
+                    raise ValueError(f"Earlier committed block {block_id} has not executed")
 
+        # AI-assisted B4/B6: persist results per committed position, not untrusted ID.
         receipts = []
         for block_id in block_ids:
-            for tx in self.blocks[block_id].transactions:
-                receipts.append(self.machine.apply(tx))
+            if block_id not in self.machine.execution_receipts:
+                records = []
+                for index, tx in enumerate(self.blocks[block_id].transactions):
+                    records.append({
+                        **asdict(tx), **self.machine.apply(tx),
+                        "block_id": block_id, "transaction_index": index,
+                    })
+                self.machine.execution_receipts[block_id] = records
+            receipts.extend(
+                receipt.copy() for receipt in self.machine.execution_receipts[block_id]
+            )
         return receipts

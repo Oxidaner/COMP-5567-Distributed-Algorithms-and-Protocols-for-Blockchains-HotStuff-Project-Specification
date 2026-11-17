@@ -1,0 +1,49 @@
+Task B final verification
+Date: 2026-11-18T02:12:53.918217+08:00
+Branch: task-b-security (uncommitted working tree)
+Base: acfa05c98068c006e3ddd091fbb0c923396a1ae6
+User PDF SHA-256: 6d7af9eff9c04fff78162239c5fd5aa91d4db7fe9cd32269c7c1eebcdc5c8500
+Python: 3.11.15
+Platform: macOS-15.7.4-arm64-arm-64bit
+cryptography: 50.0.2
+fastapi: 0.163.1
+pydantic: 2.14.3
+uvicorn: 0.54.0
+httpx: 0.28.1
+
+Command: python -m unittest discover -s tests -v
+test_initial_snapshot (test_framework.FrameworkTests.test_initial_snapshot) ... ok
+test_missing_event_can_be_retried (test_framework.FrameworkTests.test_missing_event_can_be_retried) ... ok
+test_reset_framework (test_framework.FrameworkTests.test_reset_framework) ... ok
+test_batching_and_ancestor_deduplication (test_integration.HotStuffTests.test_batching_and_ancestor_deduplication) ... ok
+test_insufficient_funds_rejected_at_commit (test_integration.HotStuffTests.test_insufficient_funds_rejected_at_commit) ... ok
+test_invalid_transaction_inputs (test_integration.HotStuffTests.test_invalid_transaction_inputs) ... ok
+test_lock_and_one_vote_per_view (test_integration.HotStuffTests.test_lock_and_one_vote_per_view) ... ok
+test_reset_clears_faults_events_and_accounts (test_integration.HotStuffTests.test_reset_clears_faults_events_and_accounts) ... ok
+test_three_chain_and_transfer (test_integration.HotStuffTests.test_three_chain_and_transfer) ... ok
+test_committed_unsigned_payload_is_rejected_and_queryable (test_security_boundaries.SecurityBoundaryTests.test_committed_unsigned_payload_is_rejected_and_queryable) ... ok
+test_invalid_attempt_has_a_receipt_without_poisoning_valid_retry (test_security_boundaries.SecurityBoundaryTests.test_invalid_attempt_has_a_receipt_without_poisoning_valid_retry) ... ok
+test_unsigned_admission_is_rejected_without_mutation (test_security_boundaries.SecurityBoundaryTests.test_unsigned_admission_is_rejected_without_mutation) ... ok
+test_wrong_nonce_block_replay_does_not_retry_its_failed_execution (test_security_boundaries.SecurityBoundaryTests.test_wrong_nonce_block_replay_does_not_retry_its_failed_execution) ... ok
+test_empty_chain_commits (test_task_a.TaskATests.test_empty_chain_commits) ... ok
+test_one_qc_does_not_commit_own_block (test_task_a.TaskATests.test_one_qc_does_not_commit_own_block) ... ok
+test_quorum_not_reached (test_task_a.TaskATests.test_quorum_not_reached) ... ok
+test_admission_does_not_execute (test_task_b.TaskBTests.test_admission_does_not_execute) ... ok
+test_committed_execution_and_cleanup (test_task_b.TaskBTests.test_committed_execution_and_cleanup) ... ok
+test_dependent_transfers_follow_block_and_payload_order (test_task_b.TaskBTests.test_dependent_transfers_follow_block_and_payload_order) ... ok
+test_insufficient_balance_and_same_id_retry (test_task_b.TaskBTests.test_insufficient_balance_and_same_id_retry) ... ok
+test_mixed_committed_and_uncommitted_ids_reject_before_any_execution (test_task_b.TaskBTests.test_mixed_committed_and_uncommitted_ids_reject_before_any_execution) ... ok
+test_out_of_order_or_skipped_commits_reject_before_execution (test_task_b.TaskBTests.test_out_of_order_or_skipped_commits_reject_before_execution) ... ok
+test_pool_excludes_only_selected_ancestry (test_task_b.TaskBTests.test_pool_excludes_only_selected_ancestry) ... ok
+test_uncommitted_payload_not_executed (test_task_b.TaskBTests.test_uncommitted_payload_not_executed) ... ok
+test_offline_command_produces_a_verifiable_request (test_transaction_api.SigningClientTests.test_offline_command_produces_a_verifiable_request) ... ok
+test_batch_limits_and_input_validation_through_api (test_transaction_api.TransactionAPITests.test_batch_limits_and_input_validation_through_api) ... ok
+test_invalid_signatures_are_400_without_state_mutation (test_transaction_api.TransactionAPITests.test_invalid_signatures_are_400_without_state_mutation) ... ok
+test_missing_signature_or_nonce_cannot_bypass_authentication (test_transaction_api.TransactionAPITests.test_missing_signature_or_nonce_cannot_bypass_authentication) ... ok
+test_signed_request_retries_return_pending_identity_and_final_receipt (test_transaction_api.TransactionAPITests.test_signed_request_retries_return_pending_identity_and_final_receipt) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 0.081s
+
+OK
+Exit: 0

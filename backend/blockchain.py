@@ -1,15 +1,24 @@
 import hashlib
-import hmac
 import json
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 
 from .models import Transaction
 
 
 INITIAL_BALANCES = {"Alice": 100, "Bob": 100, "Charlie": 100}
-CLASSROOM_KEYS = {
-    "Alice": "classroom-key-alice",
-    "Bob": "classroom-key-bob",
-    "Charlie": "classroom-key-charlie",
+# Reproducible public classroom fixtures, not keys for real accounts.
+CLASSROOM_PRIVATE_KEYS = {
+    account: hashlib.sha256(f"COMP5567 classroom key: {account}".encode()).digest()
+    for account in INITIAL_BALANCES
+}
+CLASSROOM_PUBLIC_KEYS = {
+    account: Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes_raw()
+    for account, seed in CLASSROOM_PRIVATE_KEYS.items()
 }
 
 
@@ -35,26 +44,40 @@ def transaction_id(sender: str, receiver: str, amount: int, nonce: int) -> str:
 
 
 def sign_transaction(sender: str, receiver: str, amount: int, nonce: int,
-                     private_key: str | None = None) -> str:
-    """Create a classroom signature for the optional signed path."""
-    key = private_key if private_key is not None else CLASSROOM_KEYS.get(sender)
+                     private_key: bytes | None = None) -> str:
+    """AI-assisted B6: sign the canonical payload with an Ed25519 private seed."""
+    key = private_key if private_key is not None else CLASSROOM_PRIVATE_KEYS.get(sender)
     if key is None:
         raise ValueError("Unknown signing account")
-    return hmac.new(
-        key.encode("utf-8"),
-        _canonical_payload(sender, receiver, amount, nonce),
-        hashlib.sha256,
-    ).hexdigest()
+    return Ed25519PrivateKey.from_private_bytes(key).sign(
+        _canonical_payload(sender, receiver, amount, nonce)
+    ).hex()
 
 
 def verify_transaction(sender: str, receiver: str, amount: int, nonce: int,
-                       signature: str, public_key: str | None = None) -> bool:
-    """Verify a classroom signature without deriving identity from it."""
-    key = public_key if public_key is not None else CLASSROOM_KEYS.get(sender)
-    if key is None or not isinstance(signature, str):
+                       signature: str, public_key: bytes | None = None) -> bool:
+    """AI-assisted B6: verify using only a public key; malformed input is false."""
+    if not isinstance(signature, str):
         return False
-    expected = sign_transaction(sender, receiver, amount, nonce, key)
-    return hmac.compare_digest(expected, signature)
+    try:
+        key = public_key if public_key is not None else CLASSROOM_PUBLIC_KEYS[sender]
+        Ed25519PublicKey.from_public_bytes(key).verify(
+            bytes.fromhex(signature),
+            _canonical_payload(sender, receiver, amount, nonce),
+        )
+    except (InvalidSignature, KeyError, TypeError, ValueError):
+        return False
+    return True
+
+
+def verify_transaction_identity(tx: Transaction) -> bool:
+    """AI-assisted B6: bind signed identities to their authenticated payload."""
+    return (
+        type(tx.nonce) is int
+        and tx.nonce >= 0
+        and verify_transaction(tx.sender, tx.receiver, tx.amount, tx.nonce, tx.signature)
+        and tx.id == transaction_id(tx.sender, tx.receiver, tx.amount, tx.nonce)
+    )
 
 
 class StateMachine:
@@ -63,6 +86,8 @@ class StateMachine:
         # Receipts also make execution idempotent across catch-up and retries.
         self.receipts: dict[str, dict] = {}
         self.nonces = {account: 0 for account in INITIAL_BALANCES}
+        # Every committed position has a result, even if its claimed ID is forged.
+        self.execution_receipts: dict[str, list[dict]] = {}
 
     def apply(self, tx: Transaction) -> dict:
         """B3 B4 validate and deterministically execute one committed transaction.
@@ -72,26 +97,17 @@ class StateMachine:
         status committed or rejected and error None or an explanatory string.
         Reusing a transaction ID returns its prior receipt without another debit.
         B6 extends this with signature verification, nonces and stable identities."""
+        # AI-assisted B6 fix: authenticate before consulting or reserving an identity.
+        if not verify_transaction_identity(tx):
+            return {"status": "rejected", "error": "Invalid signature or transaction identity"}
         if tx.id in self.receipts:
             return self.receipts[tx.id].copy()
 
-        signed = tx.nonce is not None or tx.signature is not None
+        if tx.nonce != self.nonces[tx.sender]:
+            return {"status": "rejected", "error": "Nonce does not match the next account nonce"}
+
         error = None
-        if signed and (
-            type(tx.nonce) is not int
-            or tx.nonce < 0
-            or not isinstance(tx.signature, str)
-            or not verify_transaction(
-                tx.sender, tx.receiver, tx.amount, tx.nonce, tx.signature
-            )
-        ):
-            error = "Invalid signature or nonce"
-        elif signed and (
-            tx.sender not in self.nonces
-            or tx.nonce != self.nonces[tx.sender]
-        ):
-            error = "Nonce does not match the next account nonce"
-        elif tx.sender not in self.accounts or tx.receiver not in self.accounts:
+        if tx.sender not in self.accounts or tx.receiver not in self.accounts:
             error = "Unknown account"
         elif type(tx.amount) is not int or tx.amount <= 0:
             error = "Amount must be a positive integer"
@@ -105,7 +121,7 @@ class StateMachine:
         else:
             status = "rejected"
 
-        if signed and error in (None, "Insufficient funds"):
+        if error in (None, "Insufficient funds"):
             self.nonces[tx.sender] += 1
         receipt = {"status": status, "error": error}
         self.receipts[tx.id] = receipt

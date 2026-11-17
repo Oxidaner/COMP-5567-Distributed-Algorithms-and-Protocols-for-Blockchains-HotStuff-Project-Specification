@@ -1,5 +1,6 @@
 import unittest
 from backend.hotstuff import HotStuffDemo
+from tests.helpers import submit_signed
 from backend.models import Block, QC
 
 class HotStuffTests(unittest.TestCase):
@@ -23,7 +24,7 @@ class HotStuffTests(unittest.TestCase):
             self.assertGreaterEqual(len(set(qc.voters)), 3)
 
     def test_three_chain_and_transfer(self):
-        tx = self.demo.submit("Alice", "Bob", 10)
+        tx = submit_signed(self.demo, "Alice", "Bob", 10)
         self.advance_until(lambda: "B2" in self.demo.qcs)
         for node in self.demo.nodes:
             self.assertEqual(node.machine.accounts["Alice"], 100)
@@ -41,12 +42,12 @@ class HotStuffTests(unittest.TestCase):
         self.assert_agreement()
 
     def test_insufficient_funds_rejected_at_commit(self):
-        self.demo.submit("Alice", "Bob", 80)
-        self.demo.submit("Alice", "Charlie", 80)
+        submit_signed(self.demo, "Alice", "Bob", 80)
+        second = submit_signed(self.demo, "Alice", "Charlie", 80)
         self.advance_until(lambda: not self.demo.mempool)
         for node in self.demo.nodes:
             self.assertEqual(node.machine.accounts, {"Alice": 20, "Bob": 180, "Charlie": 100})
-            self.assertEqual(node.machine.receipts["Tx2"]["status"], "rejected")
+            self.assertEqual(node.machine.receipts[second.id]["status"], "rejected")
         self.assert_agreement()
 
     def test_lock_and_one_vote_per_view(self):
@@ -63,7 +64,7 @@ class HotStuffTests(unittest.TestCase):
 
     def test_batching_and_ancestor_deduplication(self):
         for _ in range(7):
-            self.demo.submit("Alice", "Bob", 1)
+            submit_signed(self.demo, "Alice", "Bob", 1)
         self.advance_until(lambda: not self.demo.mempool)
         self.assertEqual(len(self.demo.blocks["B1"].transactions), 5)
         self.assertEqual(len(self.demo.blocks["B2"].transactions), 2)
@@ -71,7 +72,7 @@ class HotStuffTests(unittest.TestCase):
         self.assert_agreement()
 
     def test_reset_clears_faults_events_and_accounts(self):
-        self.demo.submit("Alice", "Bob", 10)
+        submit_signed(self.demo, "Alice", "Bob", 10)
         self.demo.step()
         self.demo.set_byzantine(4)
         self.demo.crash_leader()
@@ -88,7 +89,7 @@ class HotStuffTests(unittest.TestCase):
     def test_invalid_transaction_inputs(self):
         for amount in (0, -1, 1.5, True, 1_000_001):
             with self.assertRaises(ValueError):
-                self.demo.submit("Alice", "Bob", amount)
+                submit_signed(self.demo, "Alice", "Bob", amount)
         with self.assertRaises(ValueError):
-            self.demo.submit("Unknown", "Bob", 1)
+            submit_signed(self.demo, "Unknown", "Bob", 1)
 

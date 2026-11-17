@@ -1,3 +1,5 @@
+import {signTransfer} from './signing.js';
+
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let currentState = null;
@@ -5,6 +7,7 @@ let selectedBlock = 'B0';
 let busy = false;
 let requestNumber = 0;
 let renderedRequest = 0;
+let lastSignedRequest = null;
 
 async function api(path, body) {
   const number = ++requestNumber;
@@ -31,19 +34,20 @@ async function mutate(path, body = {}) {
   $('error').hidden = true;
   document.querySelectorAll('button').forEach(button => button.disabled = true);
   try {
-    return await api(path, body);
+    return await api(path, typeof body === 'function' ? await body() : body);
   } catch (error) {
     $('error').textContent = error.message;
     $('error').hidden = false;
   } finally {
     busy = false;
     document.querySelectorAll('button').forEach(button => button.disabled = false);
+    $('retry-transfer').disabled = !lastSignedRequest;
   }
 }
 
 function qcLabel(qc) { return `${qc.block_id} <small>v${qc.view}</small>`; }
 function txLine(tx) {
-  return `<span class="mono">${escapeHtml(tx.id)}</span><span>${escapeHtml(tx.sender)} → ${escapeHtml(tx.receiver)}</span><strong>${tx.amount}</strong>`;
+  return `<span class="mono">${escapeHtml(tx.id)}</span><span>${escapeHtml(tx.sender)} → ${escapeHtml(tx.receiver)} <small>nonce ${escapeHtml(tx.nonce)}</small></span><strong>${tx.amount}</strong>`;
 }
 
 function render(state) {
@@ -72,12 +76,13 @@ function render(state) {
     </button>`).join('');
   $('committed-chain').textContent = state.committed_chain.join(' → ');
   renderBlock();
-  $('accounts').innerHTML = Object.entries(state.accounts).map(([name, balance]) => `<div><span>${name}</span><strong>${balance}<small>units</small></strong></div>`).join('');
+  $('accounts').innerHTML = Object.entries(state.accounts).map(([name, balance]) => `<div><span>${name}</span><strong>${balance}<small>units</small></strong><small>Next execution nonce ${state.nonces[name]}</small></div>`).join('');
+  $('batch-limit').value = String(state.max_txs_per_block);
   $('mempool-count').textContent = state.mempool.length;
   $('mempool').innerHTML = state.mempool.length ? state.mempool.map(tx => `<div class="tx">${txLine(tx)}</div>`).join('') : '<p class="empty">Mempool is empty · Submit a transfer to begin</p>';
-  const receipts = state.transactions.filter(tx => tx.status !== 'pending');
+  const receipts = state.execution_receipts;
   $('receipt-count').textContent = receipts.length;
-  $('receipts').innerHTML = receipts.length ? receipts.slice(-30).reverse().map(tx => `<div class="receipt"><div class="tx">${txLine(tx)}</div><small class="${tx.status === 'rejected' ? 'fault' : 'commit'}">${tx.status === 'rejected' ? `Execution failed: ${escapeHtml(tx.error)}` : '✓ Committed · Executed'}</small></div>`).join('') : '<p class="empty">Waiting for a transaction block to commit</p>';
+  $('receipts').innerHTML = receipts.length ? receipts.slice(-30).reverse().map(tx => `<div class="receipt"><div class="tx">${txLine(tx)}</div><small>${escapeHtml(tx.block_id)} / position ${tx.transaction_index} · </small><small class="${tx.status === 'rejected' ? 'fault' : 'commit'}">${tx.status === 'rejected' ? `Execution failed: ${escapeHtml(tx.error)}` : '✓ Committed · Executed'}</small></div>`).join('') : '<p class="empty">Waiting for a transaction block to commit</p>';
   $('event-count').textContent = `Latest ${Math.min(state.logs.length, 100)} events · Newest first`;
   $('logs').innerHTML = state.logs.slice(-100).reverse().map(log => `<div class="log ${log.kind}"><div class="log-meta"><span>STEP ${String(log.step).padStart(3, '0')}</span><span>VIEW ${log.view} · ${log.kind.toUpperCase()}</span></div><p>${escapeHtml(log.message)}</p></div>`).join('');
 }
@@ -97,7 +102,11 @@ function renderBlock() {
 document.querySelectorAll('[data-action]').forEach(button => {
   button.addEventListener('click', async () => {
     const data = await mutate(`/api/control/${button.dataset.action}`);
-    if (data && button.dataset.action === 'reset') $('tx-message').textContent = 'Reset complete · All balances restored to 100';
+    if (data && button.dataset.action === 'reset') {
+      lastSignedRequest = null;
+      $('retry-transfer').disabled = true;
+      $('tx-message').textContent = 'Reset complete · Balances 100 · Nonces 0';
+    }
   });
 });
 $('byzantine').addEventListener('change', event => mutate('/api/byzantine', {node_id: event.target.value ? Number(event.target.value) : null}));
@@ -107,8 +116,29 @@ $('blocks').addEventListener('click', event => {
 });
 $('transfer-form').addEventListener('submit', async event => {
   event.preventDefault();
-  const result = await mutate('/api/transactions', {sender: $('sender').value, receiver: $('receiver').value, amount: Number($('amount').value)});
-  if (result) $('tx-message').textContent = `${result.transaction_id} entered the mempool · Click Start or Next Step to advance to commit`;
+  const result = await mutate('/api/transactions', async () => {
+    if (!crypto.subtle) throw new Error('Browser signing requires localhost or HTTPS and Ed25519 support.');
+    const sender = $('sender').value;
+    const receiver = $('receiver').value;
+    const amount = Number($('amount').value);
+    const state = await api('/api/state');
+    let nonce = state.nonces[sender];
+    const pending = new Set(state.mempool.filter(tx => tx.sender === sender).map(tx => tx.nonce));
+    while (pending.has(nonce)) nonce += 1;
+    lastSignedRequest = await signTransfer(sender, receiver, amount, nonce);
+    return lastSignedRequest;
+  });
+  if (result) $('tx-message').textContent = `${result.transaction_id} signed and queued · Advance consensus to execute`;
+});
+$('retry-transfer').addEventListener('click', async () => {
+  const result = await mutate('/api/transactions', lastSignedRequest);
+  if (result) {
+    const tx = result.state.transactions.find(tx => tx.id === result.transaction_id);
+    $('tx-message').textContent = `${result.transaction_id} · ${tx.status} · Same signed request, no duplicate execution`;
+  }
+});
+$('batch-limit').addEventListener('change', event => {
+  mutate('/api/config/batch', {max_txs_per_block: Number(event.target.value)});
 });
 
 async function poll() {

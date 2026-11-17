@@ -54,8 +54,8 @@ class TransferRequest(BaseModel):
     sender: str
     receiver: str
     amount: int = Field(strict=True, ge=1, le=1_000_000)
-    nonce: int | None = Field(default=None, strict=True, ge=0)
-    signature: str | None = None
+    nonce: int = Field(strict=True, ge=0)
+    signature: str
 
 
 class ByzantineRequest(BaseModel):

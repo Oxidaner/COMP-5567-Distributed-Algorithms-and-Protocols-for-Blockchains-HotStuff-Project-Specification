@@ -1,10 +1,10 @@
 # COMP5567 HotStuff Student Starter 2026
 
-Implement the missing consensus (Task A, 35 marks) and blockchain-system
-(Task B, 30 marks) functions. The accompanying project specification defines
-the full 100-point assessment. This distribution intentionally has no working
-consensus or transfer implementation. The dashboard and HTTP service start;
-calling an unimplemented operation returns a clear TODO message (HTTP 501).
+Implementation based on the COMP5567 student starter: Task A consensus and
+Task B admission, packing, committed execution and receipts. B5 exposes batch
+configuration; B6 provides Ed25519-signed requests and nonce/replay handling.
+The accompanying project specification defines the full 100-point assessment.
+See `docs/TASK_B.md` for the transaction flow, security policy and AI assistance.
 
 ## Run
 
@@ -14,6 +14,22 @@ Python 3.10 or newer. From this folder:
 python -m pip install -r requirements.txt
 python backend/main.py
 ```
+
+Install test dependencies with `python -m pip install -r requirements-dev.txt`.
+To create or submit an Ed25519-signed classroom request:
+
+```bash
+python -m tools.sign_transaction Alice Bob 10 --nonce 0
+python -m tools.sign_transaction Alice Bob 10 --nonce 0 --submit
+```
+
+Read the next signed nonce from `GET /api/state` (`nonces.Alice`, initially 0).
+The browser form signs Ed25519 requests locally with the public classroom test
+keys. Both the API and committed execution require signatures; the unsigned
+starter path has been removed. Use a browser supporting Web Crypto Ed25519 on
+localhost or HTTPS. The CLI is an alternative signing client.
+Consecutive future nonces may queue; gaps and conflicting payloads at the same
+account/nonce are rejected. Only committed execution advances the account nonce.
 
 Open http://localhost:8000. Start runs one logical event every 0.8 seconds;
 Next Step runs one event. A missing event pauses and remains available for
@@ -71,8 +87,9 @@ You may add helpers. Do not change quorum three or bypass commitment.
 
 The queue, API validation, fault switches, initial state, snapshot generation,
 frontend and dispatch_qc are supplied infrastructure, not completed task credit.
-The dashboard agreement badge compares live balances and committed chains only;
-your tests must also inspect receipts and (for B6) nonces.
+The dashboard agreement badge compares live balances, committed chains, nonces,
+canonical transaction receipts and execution receipts. Every committed payload
+position has a queryable execution receipt, including rejected malicious entries.
 
 ## Tests
 
@@ -82,8 +99,7 @@ These framework checks pass in the unmodified starter:
 python -m unittest discover -s tests -p 'test_framework.py' -v
 ```
 
-The following are acceptance tests. They are EXPECTED TO FAIL with TODO errors
-until you implement the assessed functions. Do not skip or remove assertions.
+The following are acceptance tests. Do not skip or remove assertions.
 
 ```bash
 python -m unittest discover -s tests -p 'test_task_a.py' -v
@@ -101,11 +117,19 @@ Run the relevant optional tests only when claiming the corresponding extension:
 ```bash
 python -m unittest discover -s extensions_tests -p 'test_recovery.py' -v
 python -m unittest discover -s extensions_tests -p 'test_batch.py' -v
+python -m unittest discover -s extensions_tests -p 'test_security.py' -v
 ```
 
 The five recovery/fault cases plus six integration cases preserve all eleven
-original regression tests. Add your own A7 and B6 tests for attack/tampering,
-wrong account, replay before/after commit, nonce progression and recovery.
+original regression tests. B6 tests cover tampering, wrong accounts, forged IDs,
+malformed signatures, replay before/after commit, nonce progression and recovery.
+`tests/test_transaction_api.py` covers the HTTP boundary and signing client.
+`tests/test_security_boundaries.py` locks down unsigned rejection, visible failure
+receipts, valid retries after malicious entries and idempotent rejected-block replay.
+Starter tests retain their behavioral assertions; `tests/helpers.py` now supplies
+signed requests with consecutive nonces, and ID assertions use payload-derived
+IDs. Direct unsigned fixtures remain only where testing rejection.
+A7 still needs dedicated automated extension evidence.
 Passing public tests is necessary evidence, not a complete grading rubric.
 
 ## Submission and demonstration
@@ -124,7 +148,7 @@ This repository imports the official **student starter** at commit
 `1d7d70b2c480cd67b60c4b2e581bdbdc31220dd2` (29 September 2026).
 `STARTER_VERSION.json` names `71ef92e...` as the earlier reference commit;
 that is **not** the student starter baseline. The imported assessed functions
-are still TODOs. The original course specification is in
+were TODOs in that imported baseline. The original course specification is in
 `docs/COMP5567_HotStuff_Project_2026.pdf`.
 
 Read `docs/WORK_PLAN.md` for three design choices, five function owners,
@@ -144,11 +168,10 @@ python -m unittest discover -s tests -p 'test_task_b.py' -v
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions runs framework and core acceptance as separate checks. The
-core check is expected to fail while TODOs remain; do not weaken its
-assertions to turn it green. The manually started `Selected optional tests`
-job can check A6, B5 or both independently. Add automated A7/B6 checks if
-claiming those extensions.
+GitHub Actions runs framework and core acceptance as separate checks. Core
+acceptance also runs B5 and B6 tests on every PR and push to main. The manually
+started `Selected optional tests` job can check A6, B5 or both independently.
+Do not weaken assertions to turn checks green.
 
 The assessed implementation, report, presentation, live demonstration and
 final submission archive remain group work. `results/README.md` describes

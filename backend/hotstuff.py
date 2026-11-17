@@ -7,7 +7,9 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import asdict
 
-from .blockchain import INITIAL_BALANCES
+from .blockchain import (
+    INITIAL_BALANCES, transaction_id, verify_transaction, verify_transaction_identity,
+)
 from .models import Block, QC, Transaction
 from .node import Node
 
@@ -46,7 +48,6 @@ class HotStuffDemo:
         self.steps = 0
         self.running = False
         self.max_txs_per_block = 5
-        self.next_tx_number = 1
         self.phase = "Ready for proposal"
         self.log("Genesis B0 committed · Enter View 1 · Leader N1", "view")
 
@@ -54,44 +55,41 @@ class HotStuffDemo:
                nonce: int | None = None, signature: str | None = None) -> Transaction:
         """B1 implement transaction admission and mempool insertion.
         Return a Transaction; validate account names and a strict integer amount
-        in [1, 1000000]. Invalid requests must not modify state. Allocate Tx1,
-        Tx2, ... for the basic task. B6 may extend this interface for signed input.
-        Do not execute transfers here."""
+        in [1, 1000000]. Invalid requests must not modify state. B6 requires a
+        signature, a payload-derived ID and consecutive per-account nonces.
+        Future nonces can queue without gaps. Do not execute transfers here."""
+        # AI-assisted B1/B6 admission; see docs/TASK_B.md for retry and nonce policy.
         if sender not in INITIAL_BALANCES or receiver not in INITIAL_BALANCES:
             raise ValueError("Unknown account")
         if type(amount) is not int or not 1 <= amount <= 1_000_000:
             raise ValueError("Amount must be an integer in [1, 1000000]")
-        if (nonce is None) != (signature is None):
-            raise ValueError("Signed transactions require both nonce and signature")
-
-        if nonce is None:
-            tx_id = f"Tx{self.next_tx_number}"
-            self.next_tx_number += 1
-        else:
-            from .blockchain import transaction_id, verify_transaction
-            if type(nonce) is not int or nonce < 0:
-                raise ValueError("Nonce must be a non-negative integer")
-            if not isinstance(signature, str) or not signature:
-                raise ValueError("Signature is required")
-            if not verify_transaction(sender, receiver, amount, nonce, signature):
-                raise ValueError("Invalid transaction signature")
-            tx_id = transaction_id(sender, receiver, amount, nonce)
-            existing = self.transactions.get(tx_id)
-            if existing is not None:
-                return existing
-            live = [node for node in self.nodes if not node.crashed]
-            source = max(live, key=lambda node: len(node.committed_blocks)) if live else self.nodes[0]
-            current_nonce = source.machine.nonces.get(sender, 0)
-            if nonce < current_nonce:
-                raise ValueError("Nonce has already been used")
-            if nonce > current_nonce:
-                raise ValueError("Nonce must equal the next account nonce")
-            if any(
-                self.transactions[pending_id].sender == sender
-                and self.transactions[pending_id].nonce == nonce
-                for pending_id in self.mempool
-            ):
-                raise ValueError("A transaction with this nonce is already pending")
+        if type(nonce) is not int or nonce < 0:
+            raise ValueError("Nonce must be a non-negative integer")
+        if not isinstance(signature, str) or not signature:
+            raise ValueError("Signature is required")
+        if not verify_transaction(sender, receiver, amount, nonce, signature):
+            raise ValueError("Invalid transaction signature")
+        tx_id = transaction_id(sender, receiver, amount, nonce)
+        existing = self.transactions.get(tx_id)
+        if existing is not None:
+            return existing
+        live = [node for node in self.nodes if not node.crashed]
+        source = max(live, key=lambda node: len(node.committed_blocks)) if live else self.nodes[0]
+        current_nonce = source.machine.nonces[sender]
+        pending_nonces = {
+            self.transactions[pending_id].nonce
+            for pending_id in self.mempool
+            if self.transactions[pending_id].sender == sender
+        }
+        if nonce < current_nonce:
+            raise ValueError("Nonce has already been used")
+        if nonce in pending_nonces:
+            raise ValueError("A transaction with this nonce is already pending")
+        next_nonce = current_nonce
+        while next_nonce in pending_nonces:
+            next_nonce += 1
+        if nonce != next_nonce:
+            raise ValueError("Nonce must be the next account nonce without gaps")
 
         tx = Transaction(tx_id, sender, receiver, amount, nonce, signature)
         self.transactions[tx.id] = tx
@@ -350,11 +348,22 @@ class HotStuffDemo:
                         for tx in self.transactions.values()]
         live = [n for n in self.nodes if not n.crashed]
         consistent = bool(live) and all(n.machine.accounts == live[0].machine.accounts
-                                       and n.committed_blocks == live[0].committed_blocks for n in live)
+                                       and n.committed_blocks == live[0].committed_blocks
+                                       and n.machine.nonces == live[0].machine.nonces
+                                       and n.machine.receipts == live[0].machine.receipts
+                                       and n.machine.execution_receipts == live[0].machine.execution_receipts
+                                       for n in live)
+        execution_receipts = [
+            receipt.copy()
+            for block_id in source.committed_blocks
+            for receipt in source.machine.execution_receipts.get(block_id, [])
+        ]
         return {"view": self.view, "leader_id": self.leader_id, "running": self.running,
                 "steps": self.steps, "phase": self.phase, "nodes": node_states,
                 "blocks": blocks, "mempool": [asdict(self.transactions[t]) for t in self.mempool],
                 "transactions": transactions, "accounts": source.machine.accounts.copy(),
+                "execution_receipts": execution_receipts,
+                "max_txs_per_block": self.max_txs_per_block,
                 "nonces": source.machine.nonces.copy(),
                 "committed_chain": source.committed_blocks.copy(), "consistent": consistent,
                 "logs": list(self.logs), "quorum": self.QUORUM,
@@ -368,14 +377,21 @@ class HotStuffDemo:
         on the selected parent chain. An abandoned branch does not exclude an ID.
         Empty input returns an empty list. Keep IDs in the pool until commit.
         """
+        # AI-assisted B6 fix: unauthenticated ancestry cannot reserve pending IDs.
         if parent is None:
             return []
+        source = max(self.nodes, key=lambda node: len(node.committed_blocks))
+        committed = set(source.committed_blocks)
         selected_ancestry = set()
         current = parent
         visited = set()
         while current is not None and current.id not in visited:
             visited.add(current.id)
-            selected_ancestry.update(tx.id for tx in current.transactions)
+            selected_ancestry.update(
+                tx.id for tx in current.transactions
+                if verify_transaction_identity(tx)
+                and (current.id not in committed or tx.id in source.machine.receipts)
+            )
             if current.parent_id is None:
                 break
             current = self.blocks.get(current.parent_id)
@@ -392,26 +408,25 @@ class HotStuffDemo:
         and record useful transaction events. Repeated finalization is harmless.
         This method does not execute transfers or decide consensus.
         """
+        # AI-assisted B6 fix: only terminal execution receipts authorize pool cleanup.
+        live = [node for node in self.nodes if not node.crashed]
+        source = max(live, key=lambda node: len(node.committed_blocks)) if live else self.nodes[0]
+        receipts = source.machine.receipts
         committed_tx_ids = set()
         for block_id in committed_ids:
             block = self.blocks.get(block_id)
             if block is None:
                 continue
-            committed_tx_ids.update(tx.id for tx in block.transactions)
+            committed_tx_ids.update(
+                tx.id for tx in block.transactions if tx.id in receipts
+            )
         if not committed_tx_ids:
             return
         self.mempool[:] = [
             tx_id for tx_id in self.mempool if tx_id not in committed_tx_ids
         ]
-        live = [node for node in self.nodes if not node.crashed]
-        source = max(live, key=lambda node: len(node.committed_blocks)) if live else self.nodes[0]
-        receipts = source.machine.receipts
         for tx_id in sorted(committed_tx_ids):
-            receipt = receipts.get(tx_id)
-            if receipt is None:
-                self.log(f"{tx_id} finalized without a receipt", "transaction")
-            else:
-                self.log(f"{tx_id} finalized · {receipt['status']}", "transaction")
+            self.log(f"{tx_id} finalized · {receipts[tx_id]['status']}", "transaction")
 
     def configure_batch(self, limit):
         """B5 set a positive integer batch limit and return the accepted value.
