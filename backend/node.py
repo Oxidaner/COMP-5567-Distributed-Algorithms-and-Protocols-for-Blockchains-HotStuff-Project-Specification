@@ -26,20 +26,22 @@ class Node:
         self.role = "Leader" if self.id == leader_id else "Replica"
 
     def extends(self, block_id: str, ancestor_id: str) -> bool:
-        """A2 test whether block_id descends from ancestor_id, including itself.
-        Use local parent links. Unknown or malformed ancestry must not be
-        accepted as an extension. Return a Boolean without modifying state."""
-        # AI-assisted implementation; the student owner must review and explain it.
+        """Check ancestry using known local blocks without changing state."""
         current_id = block_id
         visited = set()
+
         while current_id is not None and current_id not in visited:
-            if current_id == ancestor_id:
-                return True
-            visited.add(current_id)
             block = self.blocks.get(current_id)
+
             if block is None:
                 return False
+
+            if current_id == ancestor_id:
+                return True
+
+            visited.add(current_id)
             current_id = block.parent_id
+
         return False
 
     def can_vote(self, block: Block) -> bool:

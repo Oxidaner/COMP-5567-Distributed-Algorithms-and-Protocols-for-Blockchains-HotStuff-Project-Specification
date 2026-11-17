@@ -1,0 +1,13 @@
+test_crashed_leader_cannot_inject_equivocation (test_attacks.AttackTests) ... ok
+test_default_delivery_rejects_second_conflicting_vote (test_attacks.AttackTests) ... ok
+test_duplicate_injection_cannot_turn_two_voters_into_quorum (test_attacks.AttackTests) ... ok
+test_duplicate_injection_reaches_vote_validation (test_attacks.AttackTests) ... ok
+test_equivocation_creates_conflicting_proposals (test_attacks.AttackTests) ... ok
+test_nonleader_cannot_inject_leader_equivocation (test_attacks.AttackTests) ... ok
+test_progress_after_attack_has_no_conflicting_commits (test_attacks.AttackTests) ... ok
+test_split_first_delivery_cannot_create_two_qcs (test_attacks.AttackTests) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.039s
+
+OK
