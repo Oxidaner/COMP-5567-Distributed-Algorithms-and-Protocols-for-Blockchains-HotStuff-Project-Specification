@@ -306,11 +306,28 @@ class HotStuffDemo:
         for node in self.nodes:
             if not node.crashed:
                 continue
+            # AI-assisted recovery: a replica must not forget a justified
+            # higher lock or QC that it held before crashing.
+            previous_blocks = node.blocks
+            previous_high_qc = node.high_qc
+            previous_locked_qc = node.locked_qc
             previous_last_vote = node.last_voted_view
             previous_last_block = node.last_voted_block
             node.blocks = deepcopy(source.blocks)
+            node.blocks.update(deepcopy({
+                block_id: block for block_id, block in previous_blocks.items()
+                if self.blocks.get(block_id) == block
+            }))
             node.high_qc = deepcopy(source.high_qc)
             node.locked_qc = deepcopy(source.locked_qc)
+            if (previous_high_qc.view > node.high_qc.view
+                    and self.qcs.get(previous_high_qc.block_id) == previous_high_qc
+                    and previous_high_qc.block_id in node.blocks):
+                node.high_qc = deepcopy(previous_high_qc)
+            if (previous_locked_qc.view > node.locked_qc.view
+                    and self.qcs.get(previous_locked_qc.block_id) == previous_locked_qc
+                    and previous_locked_qc.block_id in node.blocks):
+                node.locked_qc = deepcopy(previous_locked_qc)
             node.committed_blocks = source.committed_blocks.copy()
             node.machine = deepcopy(source.machine)
             node.last_voted_view = max(previous_last_vote, source.last_voted_view)
