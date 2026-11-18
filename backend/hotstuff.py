@@ -162,7 +162,8 @@ class HotStuffDemo:
         if not isinstance(data, tuple) or len(data) != 2:
             return False
         node_id, block_id = data
-        if type(node_id) is not int or node_id not in range(1, self.NODE_COUNT + 1):
+        if (type(node_id) is not int or node_id not in range(1, self.NODE_COUNT + 1)
+                or type(block_id) is not str):
             return False
         node = self.nodes[node_id - 1]
         block = self.blocks.get(block_id)
@@ -171,22 +172,22 @@ class HotStuffDemo:
         if (
             node.crashed
             or self.nodes[self.leader_id - 1].crashed
+            or type(block.view) is not int
             or block.view != self.view
+            or type(block.proposer) is not int
             or block.proposer != self.leader_id
         ):
             return False
 
         parent_qc = block.qc
-        parent = self.blocks.get(block.parent_id)
+        parent = self.blocks.get(block.parent_id) if type(block.parent_id) is str else None
         if (
             parent is None
             or block.parent_id not in node.blocks
-            or parent_qc is None
+            or not isinstance(parent_qc, QC)
         ):
             return False
         if parent_qc.block_id != parent.id or parent_qc.view != parent.view:
-            return False
-        if self.qcs.get(parent_qc.block_id) != parent_qc:
             return False
         if not self._valid_qc(parent_qc):
             return False
@@ -222,16 +223,33 @@ class HotStuffDemo:
         never create a QC. Register the valid certificate, call dispatch_qc(qc),
         and enqueue ("next_view", "QC"). A6 handles a crashed collector.
         Do not implement transaction processing in this function."""
+        # AI-assisted A7 hardening: only authenticated, distinct votes for a
+        # valid current-view proposal may contribute to a certificate.
+        if type(block_id) is not str:
+            return False
         block = self.blocks.get(block_id)
-        if block is None or block.view != self.view:
+        if block is None or type(block.view) is not int or block.view != self.view:
+            return False
+        parent = self.blocks.get(block.parent_id) if type(block.parent_id) is str else None
+        if (
+            type(block.proposer) is not int
+            or block.proposer != self.leader_id
+            or parent is None
+            or not isinstance(block.qc, QC)
+            or block.qc.block_id != parent.id
+            or block.qc.view != parent.view
+            or not self._valid_qc(block.qc)
+        ):
             return False
         voters = self.votes.get(block_id, set())
+        if not isinstance(voters, (set, list, tuple)):
+            return False
         valid_voters = sorted(
-            voter for voter in voters
+            {voter for voter in voters
             if type(voter) is int
             and voter in range(1, self.NODE_COUNT + 1)
             and self.nodes[voter - 1].last_voted_view == block.view
-            and self.nodes[voter - 1].last_voted_block == block.id
+            and self.nodes[voter - 1].last_voted_block == block.id}
         )
         if len(valid_voters) < self.QUORUM:
             return False
@@ -304,11 +322,28 @@ class HotStuffDemo:
         for node in self.nodes:
             if not node.crashed:
                 continue
+            # AI-assisted recovery: a replica must not forget a justified
+            # higher lock or QC that it held before crashing.
+            previous_blocks = node.blocks
+            previous_high_qc = node.high_qc
+            previous_locked_qc = node.locked_qc
             previous_last_vote = node.last_voted_view
             previous_last_block = node.last_voted_block
             node.blocks = deepcopy(source.blocks)
+            node.blocks.update(deepcopy({
+                block_id: block for block_id, block in previous_blocks.items()
+                if self.blocks.get(block_id) == block
+            }))
             node.high_qc = deepcopy(source.high_qc)
             node.locked_qc = deepcopy(source.locked_qc)
+            if (previous_high_qc.view > node.high_qc.view
+                    and self.qcs.get(previous_high_qc.block_id) == previous_high_qc
+                    and previous_high_qc.block_id in node.blocks):
+                node.high_qc = deepcopy(previous_high_qc)
+            if (previous_locked_qc.view > node.locked_qc.view
+                    and self.qcs.get(previous_locked_qc.block_id) == previous_locked_qc
+                    and previous_locked_qc.block_id in node.blocks):
+                node.locked_qc = deepcopy(previous_locked_qc)
             node.committed_blocks = source.committed_blocks.copy()
             node.machine = deepcopy(source.machine)
             node.last_voted_view = max(previous_last_vote, source.last_voted_view)
@@ -461,7 +496,12 @@ class HotStuffDemo:
             parent = self.blocks.get(leader.high_qc.block_id)
             if parent is None:
                 raise ValueError("Leader HighQC references an unknown block")
-            self.events.clear()
+            # Keep votes and QCs already scheduled for this view. Only replace
+            # the untouched automatic proposal with the two conflicting ones.
+            self.events = deque(
+                (action, data) for action, data in self.events
+                if action != "propose"
+            )
             block_ids = []
             for _ in range(2):
                 block_id = self._new_block_id()
@@ -518,12 +558,16 @@ class HotStuffDemo:
     def _valid_qc(self, qc: QC) -> bool:
         return (
             isinstance(qc, QC)
+            and type(qc.block_id) is str
             and type(qc.view) is int
             and qc.view >= 0
-            and len(set(qc.voters)) == len(qc.voters)
+            and isinstance(qc.voters, tuple)
+            and len(qc.voters) >= self.QUORUM
             and all(type(voter) is int and voter in range(1, self.NODE_COUNT + 1)
                     for voter in qc.voters)
-            and len(qc.voters) >= self.QUORUM
+            and len(set(qc.voters)) == len(qc.voters)
+            and qc.block_id in self.blocks
+            and self.blocks[qc.block_id].view == qc.view
             and self.qcs.get(qc.block_id) == qc
         )
 

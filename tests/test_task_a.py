@@ -22,6 +22,24 @@ class TaskATests(unittest.TestCase):
         self.assertEqual(n.high_qc.block_id,'B1')
         self.assertEqual(n.committed_blocks,['B0'])
 
+    def test_invalid_embedded_qc_cannot_lock_or_commit(self):
+        d = HotStuffDemo()
+        node = d.nodes[0]
+        node.blocks['B1'] = Block('B1', 'B0', 1, 1, [], d.qcs['B0'])
+        node.blocks['B2'] = Block('B2', 'B1', 2, 2, [], QC('B1', 1, (1, 2, 3)))
+        node.blocks['B3'] = Block('B3', 'B2', 3, 3, [], QC('B2', 2, (99, 100, 101)))
+        self.assertEqual(node.receive_qc(QC('B3', 3, (1, 2, 3))), [])
+        self.assertEqual(node.high_qc.block_id, 'B0')
+        self.assertEqual(node.locked_qc.block_id, 'B0')
+        self.assertEqual(node.committed_blocks, ['B0'])
+
+    def test_malformed_qc_is_rejected_without_exception(self):
+        node = HotStuffDemo().nodes[0]
+        self.assertEqual(node.receive_qc(QC([], 1, (1, 2, 3))), [])
+        node.blocks['B1'] = Block('B1', [], 1, 1)
+        self.assertEqual(node.receive_qc(QC('B1', 1, (1, 2, 3))), [])
+        self.assertEqual(node.committed_blocks, ['B0'])
+
     def test_quorum_not_reached(self):
         d=HotStuffDemo()
         d.blocks['B1']=Block('B1','B0',1,1,[],d.qcs['B0'])

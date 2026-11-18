@@ -2,6 +2,7 @@ import unittest
 from backend.hotstuff import HotStuffDemo
 from tests.helpers import submit_signed
 from backend.models import Block, QC
+from backend.blockchain import sign_transaction
 
 class HotStuffTests(unittest.TestCase):
     def setUp(self):
@@ -75,4 +76,32 @@ class HotStuffTests(unittest.TestCase):
         # The 3,4,5 chain commits view 3 and also its view 1 ancestor.
         self.assertEqual(self.demo.nodes[0].committed_blocks, ["B0", "B1", "B2"])
         self.assert_agreement()
+
+    def test_recovery_does_not_lower_existing_lock(self):
+        node = self.demo.nodes[0]
+        block = Block('B1', 'B0', 1, 1, [], self.demo.qcs['B0'])
+        certificate = QC('B1', 1, (1, 2, 3))
+        self.demo.blocks[block.id] = block
+        self.demo.qcs[block.id] = certificate
+        node.blocks[block.id] = block
+        node.high_qc = certificate
+        node.locked_qc = certificate
+        node.crashed = True
+
+        self.demo.recover()
+
+        self.assertEqual(node.high_qc, certificate)
+        self.assertEqual(node.locked_qc, certificate)
+        self.assertIn(block.id, node.blocks)
+
+    def test_recovery_restores_receipt_and_nonce_state(self):
+        signature = sign_transaction('Alice', 'Bob', 10, 0)
+        tx = self.demo.submit('Alice', 'Bob', 10, 0, signature)
+        self.demo.crash_leader()
+        self.advance_until(lambda: tx.id in self.demo.nodes[1].machine.receipts)
+        self.demo.recover()
+        for node in self.demo.nodes:
+            self.assertEqual(node.machine.receipts[tx.id],
+                             {'status': 'committed', 'error': None})
+            self.assertEqual(node.machine.nonces['Alice'], 1)
 

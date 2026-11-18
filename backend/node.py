@@ -68,26 +68,51 @@ class Node:
         contract. Preserve existing commits and prevent repeated commitment.
         Do not execute transactions here: dispatch_qc() invokes Task B.
         A7 may add certificate validation at this boundary as needed."""
-        if self.crashed or not isinstance(qc, QC):
-            return []
-        if (
-            type(qc.view) is not int
-            or len(set(qc.voters)) != len(qc.voters)
-            or len(qc.voters) < 3
-            or any(type(voter) is not int or voter < 1 or voter > 4
-                   for voter in qc.voters)
-        ):
+        # AI-assisted validation: an embedded certificate must justify its
+        # actual parent before it may change a lock or cause commitment.
+        if self.crashed:
             return []
 
-        block = self.blocks.get(qc.block_id)
-        if block is None or block.view != qc.view:
+        def valid_certificate(certificate: QC, certified: Block) -> bool:
+            return (
+                isinstance(certificate, QC)
+                and certificate.block_id == certified.id
+                and type(certificate.view) is int
+                and certificate.view == certified.view
+                and isinstance(certificate.voters, tuple)
+                and len(certificate.voters) >= 3
+                and all(type(voter) is int and 1 <= voter <= 4
+                        for voter in certificate.voters)
+                and len(set(certificate.voters)) == len(certificate.voters)
+            )
+
+        block = (self.blocks.get(qc.block_id)
+                 if isinstance(qc, QC) and type(qc.block_id) is str else None)
+        if block is None or not valid_certificate(qc, block):
             return []
+
+        genesis_id = self.committed_blocks[0]
+        current = block
+        visited = set()
+        while current.id != genesis_id:
+            if current.id in visited:
+                return []
+            visited.add(current.id)
+            ancestor = (self.blocks.get(current.parent_id)
+                        if type(current.parent_id) is str else None)
+            if (
+                ancestor is None
+                or type(current.parent_id) is not str
+                or type(current.view) is not int
+                or type(ancestor.view) is not int
+                or current.view <= ancestor.view
+                or not valid_certificate(current.qc, ancestor)
+            ):
+                return []
+            current = ancestor
+
         parent = self.blocks.get(block.parent_id)
-        if block.qc is None or parent is None:
-            return []
-        if block.qc.block_id != parent.id or block.qc.view != parent.view:
-            return []
-        if len(set(block.qc.voters)) != len(block.qc.voters) or len(block.qc.voters) < 3:
+        if parent is None:
             return []
 
         if self.high_qc.view < qc.view:
