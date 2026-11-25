@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123931">
+  <meta name="description" content="English presentation Q&A for the COMP 5567 HotStuff project.">
+  <title>HotStuff Q&amp;A · COMP 5567</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f2f5ef;
+      --surface: #fffefa;
+      --ink: #18332b;
+      --muted: #4f635a;
+      --line: #d5e0d6;
+      --accent: #12604b;
+      --wash: #e0efe5;
+      --hero: #123931;
+      --font: "Avenir Next", "Trebuchet MS", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: radial-gradient(ellipse at top right, #e1ebe1, transparent 34rem), var(--paper);
+      font: 1rem/1.55 var(--font);
+    }
+    button, input { font: inherit; }
+    button, summary { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 3px solid #168568; outline-offset: 3px; }
+    .shell { width: min(68rem, calc(100% - 3rem)); margin: 0 auto; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      margin: 2rem auto 1.5rem;
+      padding: 2.35rem 2.5rem 2.5rem;
+      border-radius: 1.5rem;
+      color: #f8f9ee;
+      background: radial-gradient(ellipse at top right, #2a6452, transparent 64%), var(--hero);
+    }
+    .hero::after {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      content: "";
+      background: repeating-linear-gradient(135deg, transparent 0 19px, #a8d2bc20 19px 20px);
+      mask-image: linear-gradient(90deg, transparent 43%, #000);
+      pointer-events: none;
+    }
+    .course {
+      margin: 0 0 .5rem;
+      color: #bce2cb;
+      font: 600 .875rem/1.45 "SFMono-Regular", Consolas, monospace;
+      letter-spacing: .095em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font: 400 clamp(3.25rem, 7vw, 5.8rem)/1 Georgia, "Times New Roman", serif;
+      letter-spacing: -.058em;
+    }
+    .hero p:last-child { max-width: 32rem; margin: .75rem 0 0; color: #e0eee3; }
+    .tools {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: .75rem;
+      margin-bottom: 1.15rem;
+    }
+    .search { display: flex; align-items: stretch; gap: .5rem; }
+    .search input {
+      width: 100%;
+      min-width: 0;
+      min-height: 2.875rem;
+      padding: .58rem .8rem;
+      border: 1px solid var(--line);
+      border-radius: .65rem;
+      background: #f7faf6;
+      color: var(--ink);
+      font-size: 1rem;
+    }
+    .search input::placeholder { color: #54675e; }
+    .search button {
+      min-height: 2.875rem;
+      padding: .55rem 1rem;
+      border: 1px solid transparent;
+      border-radius: .65rem;
+      font-weight: 700;
+    }
+    .search-submit { background: var(--accent); color: white; }
+    .search-submit:hover { background: var(--hero); }
+    .search-clear { background: var(--wash); color: var(--ink); }
+    .layout { display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: 1.45rem; }
+    .topics { align-self: start; position: sticky; top: .75rem; }
+    .topic-title, .result-header {
+      margin: 0 0 .6rem;
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .topic-list { display: grid; gap: .25rem; }
+    .topic-select { display: none; }
+    .topic {
+      display: flex;
+      justify-content: space-between;
+      gap: .7rem;
+      min-height: 2.75rem;
+      padding: .54rem .72rem;
+      text-align: left;
+      border: 1px solid transparent;
+      border-radius: .65rem;
+      background: transparent;
+      color: var(--ink);
+      font-size: .94rem;
+      font-weight: 650;
+    }
+    .topic-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .topic:hover { background: #e9f0e8; }
+    .topic[aria-pressed="true"] {
+      background: var(--wash);
+      border-color: #abcdb9;
+      color: #0e4b39;
+    }
+    .card {
+      margin: 0 0 .6rem;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      background: var(--surface);
+    }
+    .card[open] { border-color: #a9c9b7; box-shadow: 0 4px 16px #14382e08; }
+    .card summary {
+      display: grid;
+      grid-template-columns: 1fr 1.75rem;
+      align-items: center;
+      gap: .5rem;
+      min-height: 3.4rem;
+      padding: .72rem 1rem;
+      border-radius: .85rem;
+      cursor: pointer;
+      list-style: none;
+      font-weight: 700;
+      line-height: 1.38;
+    }
+    .card summary::-webkit-details-marker { display: none; }
+    .card summary::after {
+      content: "+";
+      justify-self: center;
+      color: var(--accent);
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+    .card[open] summary::after { content: "−"; }
+    .card summary:hover { background: #f6f9f4; }
+    .card-group {
+      display: block;
+      margin-bottom: .17rem;
+      color: var(--muted);
+      font-size: .79rem;
+      font-weight: 600;
+    }
+    .answer {
+      margin: 0 1rem .9rem;
+      padding: .72rem .8rem;
+      border-left: 3px solid #89bba2;
+      border-radius: 0 .55rem .55rem 0;
+      color: #254239;
+      background: #eef5ed;
+      overflow-wrap: anywhere;
+    }
+    .empty { padding: 1.25rem; border: 1px dashed #aac2b3; border-radius: .85rem; color: var(--muted); }
+    footer { margin-top: 1.25rem; padding: 1rem 0 2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .875rem; }
+    footer a { color: var(--accent); text-underline-offset: .15em; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 42rem) {
+      .shell { width: calc(100% - 1.5rem); }
+      .hero { margin: .75rem auto 1rem; padding: 1.35rem 1.1rem 1.45rem; border-radius: 1rem; }
+      .hero p:last-child { margin-top: .55rem; }
+      .tools { margin-bottom: .8rem; padding: .5rem; }
+      .layout { display: block; }
+      .topics { position: static; margin-bottom: .8rem; }
+      .topic-title, .topic-list { display: none; }
+      .topic-select {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        color: var(--muted);
+        font-size: .9rem;
+        font-weight: 700;
+      }
+      .topic-select select {
+        min-width: 0;
+        min-height: 2.75rem;
+        flex: 1;
+        padding: .45rem .65rem;
+        border: 1px solid #abcdb9;
+        border-radius: .65rem;
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+      }
+      .card summary { padding-inline: .8rem .54rem; }
+      .answer { margin-inline: .8rem; }
+      .search button { padding-inline: .66rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell hero">
+    <p class="course">COMP 5567 / Presentation prep</p>
+    <h1>HotStuff Q&amp;A</h1>
+    <p>Short English answers for your presentation and live demo.</p>
+  </header>
+  <main class="shell">
+    <div class="tools">
+      <form class="search" id="search-form" role="search">
+        <label class="sr-only" for="search">Search questions and answers</label>
+        <input id="search" type="search" placeholder="Search QC, nonce, 余额…" autocomplete="off" spellcheck="false">
+        <button type="submit" class="search-submit">Search</button>
+        <button type="button" class="search-clear" id="clear" hidden>Clear</button>
+      </form>
+    </div>
+    <div class="layout">
+      <nav class="topics" aria-label="Question topics">
+        <p class="topic-title">Topics</p>
+        <div class="topic-list" id="topics"></div>
+        <label class="topic-select" for="topic-select">Topic
+          <select id="topic-select"></select>
+        </label>
+      </nav>
+      <section aria-labelledby="results">
+        <h2 class="result-header" id="results" aria-live="polite"></h2>
+        <div id="cards"></div>
+        <p class="empty" id="empty" hidden>No matches. Try a shorter keyword or select All questions.</p>
+        <noscript><p class="empty">Enable JavaScript to use the question list and search.</p></noscript>
+      </section>
+    </div>
+    <footer>
+      Project evidence and implementation at <a href="https://github.com/Oxidaner/COMP-5567-Distributed-Algorithms-and-Protocols-for-Blockchains-HotStuff-Project-Specification/tree/1d37b8a6346de3d87892faee4969b7e118e3c074">revision 1d37b8a</a>.
+      Protocol reference <a href="https://reitermk.github.io/papers/2019/PODC.pdf">HotStuff</a> and signature standard <a href="https://www.rfc-editor.org/rfc/rfc8032">RFC 8032</a>.
+    </footer>
+  </main>
+  <script>
+    const groups = [
+      { label: "Overview", items: [
+        ["Can you summarize your project in one sentence?", "We built a four-replica HotStuff simulation that agrees on the order of transfers and executes them to produce consistent balances and receipts.", "overview introduction project summary 概述 项目", true],
+        ["What is the difference between Task A and Task B?", "Task A agrees on the order of blocks and decides which ones are committed. Task B executes the transactions in those blocks and records the balances and receipts.", "roles architecture 分工 区别", true],
+        ["How do Task A and Task B connect?", "After a quorum certificate is formed, dispatch_qc calls receive_qc on each replica. It hands the newly committed block IDs to execute_committed and then finalizes the transaction pool.", "handoff integration form_qc Node 接口 衔接", true],
+        ["Why do the four replicas get the same result?", "They start with the same ledger and execute the same committed transactions in the same order. Each state machine uses deterministic rules without depending on a clock or random choices.", "replicated state machine determinism consistency agreement 一致性 确定性", true],
+        ["How is the simulator organized?", "FastAPI and the dashboard expose the controls. HotStuffDemo runs the event queue. Each Node keeps its own consensus state and StateMachine. The whole simulation runs in one process.", "architecture layers coordinator frontend backend 结构 架构"],
+        ["Which parts came from the starter?", "The starter supplied the framework, event queue, routes, dashboard and dispatch_qc. The project fills in the consensus and execution methods and adds signing, receipt display and verification tests.", "provided reused original files 教学模板"],
+      ] },
+      { label: "Consensus", items: [
+        ["What is a view, and how is the leader chosen?", "A view is one round of consensus. The simulator rotates the leader from Node 1 through Node 4 as the view increases. It preserves the replicas' voting history and locks.", "leader round robin rotation next_view enter_view 视图 换届", true],
+        ["How does the leader choose a parent block?", "It uses the block certified by its HighQC. The proposal includes that parent certificate as evidence for why it extends that block.", "propose justification parent branch 父块 提案"],
+        ["What is a quorum certificate, and why do you need three votes?", "A QC records at least three distinct votes for the same block and view. Two sets of three among four replicas overlap in at least two identities. With at most one faulty replica, at least one identity in the overlap is correct.", "QC 3-of-4 majority BFT intersection 证书 法定人数", true],
+        ["What does a replica check before voting?", "It checks the current leader, current view and the registered QC for the parent. It can vote only once per view and only when the proposal extends its locked branch or cites a newer parent QC.", "vote can_vote safe node lock rule 安全投票", true],
+        ["What is the difference between HighQC and LockedQC?", "HighQC is the highest valid certificate the replica has learned and helps choose a parent. LockedQC protects a branch during voting. A proposal on a different branch needs a parent certificate newer than the lock.", "highest lock locked branch 锁"],
+        ["What makes a three-chain, and which block commits?", "In our simulator, three directly linked blocks need QCs in consecutive views. When the third block gets its QC, the first block can commit together with any still-uncommitted ancestors, in ancestor-first order.", "A4 consecutive certify grandparent 三链 提交", true],
+        ["Does one QC commit its own block?", "A QC certifies that block. In a normal sequence, the QC for B2 leaves B1 uncommitted. The QC for B3 completes the three-chain and commits B1.", "certified versus committed one qc 认证 确认", true],
+        ["What happens if there is a gap between views?", "A view gap delays commitment because that chain is not consecutive. A later consecutive three-chain can still commit its oldest block and the earlier ancestors.", "timeout skipped view gap 连续 缺口"],
+        ["Why are empty blocks useful?", "They keep consensus moving when there are no new transactions. They can also help commit earlier blocks and let us test Task A separately.", "empty payload no transactions 空块"],
+        ["Can one node or two votes form a QC?", "The quorum remains three distinct valid voters. A leader cannot certify its own proposal alone, and repeated votes by one identity do not increase the count.", "quorum duplicate threshold 两票"],
+      ] },
+      { label: "Transactions", items: [
+        ["What is the lifecycle of a transaction?", "A signed request enters the mempool. The leader selects it for a proposal. After the block commits, the replicas execute the payload, store receipts and remove finalized requests from the pool.", "lifecycle transaction flow B1 B2 B3 B4 交易流程", true],
+        ["Why don't you debit the account when a request is submitted?", "At submission we do not have a committed order. That order determines which payments can succeed when an account tries to spend more than its balance. We debit only during committed execution.", "admission pending mempool early double spending 扣款 入池", true],
+        ["What does submit validate?", "It checks that both accounts exist, the amount is a strict integer from one to one million, the nonce is a non-negative integer and the sender signature is valid. A new request also has to fit the sender's consecutive nonce queue.", "B1 submit validation invalid amount 准入 校验 金额"],
+        ["What is the mempool, and when does an item leave it?", "It is the shared pool of admitted requests that are still pending. Selecting a request for a block leaves it in the pool. An execution outcome with a terminal transaction receipt allows it to be removed.", "transaction pool packing finalize_transactions 清池 交易池"],
+        ["How do you choose transactions for a block?", "We choose pending requests in insertion order up to the configured limit, five by default. We exclude authenticated IDs already on the chosen parent chain when they are still in flight or have a final receipt.", "B2 select_transactions ancestry packing FIFO 打包 父链"],
+        ["What happens to transactions in an abandoned proposal?", "They stay pending. A later leader can select them on a different branch, as long as that branch does not already contain them as eligible entries.", "fork orphan repropose abandoned branch 分叉 废弃"],
+        ["How do you stop uncommitted blocks from executing?", "Before any transfer runs, execute_committed verifies that every block is known and locally committed. It also checks the commit order and rejects a batch that skips an earlier nonempty block still waiting to execute.", "B3 gates prevalidation execute_committed atomic 未提交 顺序"],
+        ["Does atomic validation mean the whole block is rolled back if a transfer fails?", "Atomic validation applies to the input list of block IDs. After that list passes, each transfer has its own execution result. An insufficient-funds failure leaves earlier successful transfers in place.", "all-or-nothing rollback batch atomic 原子性 回滚"],
+        ["What does StateMachine.apply do?", "It verifies identity, looks for a stored receipt and checks the nonce. It then checks the accounts, amount and funds. An eligible transfer updates balances and the nonce, and the execution result is recorded.", "apply debit credit ledger B3 B4 记账"],
+        ["What happens if a committed transfer has insufficient funds?", "The balances stay the same and the transfer gets a rejected receipt. If the request is authenticated and its nonce matches, that nonce is consumed once and the finalized request leaves the pool.", "B3 B4 rejected balance failure insufficient 余额不足 失败", true],
+        ["Can delivering the same block or request again debit twice?", "Re-delivering an executed block returns the stored position results. At the transaction level, a valid repeated ID returns its existing receipt. Both layers prevent a second debit.", "B4 retries idempotent duplicate redelivery 幂等 重试", true],
+        ["Why keep two kinds of receipts?", "The canonical receipt is keyed by transaction ID for final status and deduplication. The execution receipt records the outcome at a block and position. That lets us expose a rejected entry without assigning its result to a legitimate transaction ID.", "canonical execution_receipts position identity 两类回执 位置", true],
+        ["What does the batch limit control?", "It is the maximum number of transactions in each new proposal. The default is five. The UI offers one, two and five, and the API accepts positive integers. Reset restores five.", "B5 configure_batch payload capacity 上限 批量"],
+        ["Why do you reject true as a batch limit?", "In Python, bool is a subclass of int. Requiring the actual int type prevents true from being accepted as one. Zero, negatives, fractions and strings are rejected too.", "B5 Python bool isinstance strict integer 布尔"],
+      ] },
+      { label: "Signatures & nonces", items: [
+        ["What is signed, and who signs it?", "The browser or command-line client signs the same canonical JSON with the sender's Ed25519 private key. That JSON includes the chain domain, sender, receiver, amount and nonce. The replica verifies with the sender's public key.", "B6 Ed25519 canonical payload web crypto CLI 签名 私钥 公钥"],
+        ["Why do you need canonical JSON and a chain domain?", "Sorted keys and compact JSON make the signed bytes identical across clients and replicas. The chain field binds the signature to this project's domain, so changing the domain changes what is being verified.", "canonicalization sorted domain separation 规范化 域"],
+        ["How is the transaction ID calculated?", "It is Tx- followed by the first 24 hexadecimal digits of SHA-256 over the canonical payload. The ID is independent of the signature representation, so resending the same payload preserves its identity.", "stable ID hash digest identity signature case 哈希 身份"],
+        ["Why check a signature again at execution?", "A replica executes what is inside the committed block. Verifying there checks that the payload still matches the signature and transaction ID, even if it was never accepted by the normal admission path.", "B6 verify twice defense in depth tamper 入池 执行 二次验签", true],
+        ["What if the amount changes or a different account signs?", "Verification fails because the signed bytes or the expected public key no longer match. The request cannot enter the pool. If such an entry is encountered inside a committed block, it is rejected without consuming the sender's nonce.", "tampering wrong sender wrong key invalid signature 篡改 错签"],
+        ["Can a bad entry occupy the ID of a valid pending request?", "The execution path checks the signature and recomputes the ID before looking up a receipt. Invalid entries get position-level failure results. They do not create a canonical receipt or remove the legitimate pending request.", "forged borrowed ID poisoning canonical failure 冒用 伪造 回执", true],
+        ["What is a nonce, and how does it stop replay?", "It is a per-sender sequence number starting at zero. A new execution must use the sender's current nonce. An identical signed retry gets back the existing identity or outcome, while a different request cannot reuse a consumed nonce.", "B6 replay prevention stale past nonce 防重放 序号", true],
+        ["Can future nonces be submitted?", "Yes, if the pending requests cover all earlier nonces from the current execution nonce. If zero and one are pending, two can enter the queue. Three is rejected until two is present.", "gap contiguous pending nonce future 缺号 跳号 连续"],
+        ["Why does an authenticated failure consume a nonce?", "A valid request with the expected nonce has already taken its place in the committed order. Consuming it records a final outcome and lets later requests proceed. A wrong nonce or invalid signature consumes nothing.", "insufficient funds failure final nonce rejected 失败 消耗"],
+        ["What is the difference between Retry and Sign & submit?", "Retry sends the exact same signed request, including its nonce, so it keeps the same ID. Sign and submit creates a new request using the next nonce available for that sender.", "retry button form new nonce 提交按钮 重试"],
+        ["Are transaction signatures the same as QC votes?", "Transactions use Ed25519 signatures to verify sender authorization. Consensus QCs use node identities trusted by the simulator. They represent different kinds of evidence.", "consensus certificate threshold signature sender authentication 区别"],
+      ] },
+      { label: "Faults & recovery", items: [
+        ["What happens when the leader crashes?", "The simulated timeout moves the system to a new view and rotates the leader. Three available replicas can continue making QCs. The crashed replica stays frozen until recovery.", "A6 timeout pacemaker failover 领导者 崩溃 超时"],
+        ["What if only two replicas can vote?", "They cannot reach the quorum of three. The simulator may advance views, but it cannot certify new blocks with only two votes. We keep the safety threshold fixed.", "stall availability safety liveness 两节点 停滞"],
+        ["How does a crashed replica catch up?", "It copies committed history and application state from a live peer. That includes balances, nonces and receipts. Recovery also preserves voting history and retains a higher locally justified lock or QC.", "A6 recover catch up sync receipts 恢复 同步"],
+        ["What is equivocation, and how is it handled?", "A leader equivocates when it proposes conflicting blocks in the same view. Correct replicas can vote at most once in that view, and a QC requires three matching votes. That prevents both conflicting blocks from getting QCs under the one-fault model.", "A7 byzantine conflicting proposals double proposal 拜占庭 双提案"],
+        ["What is checked when evidence is malformed?", "The system checks that votes come from distinct trusted identities and match the proposal's block and view. It also checks that certificates refer to the right blocks and views. Invalid evidence cannot advance the corresponding certificate or lock state.", "A7 invalid QC duplicate vote certificate malformed 非法 重复投票"],
+        ["What is the difference between safety and liveness here?", "Safety means correct replicas do not commit conflicting histories. Liveness means they keep making progress under the required conditions. With only two eligible voters, we see a stall while the quorum rule still protects safety.", "progress agreement fault tolerance 安全性 活性"],
+      ] },
+      { label: "Live demo", items: [
+        ["How would you demonstrate Task A on screen?", "I would reset, then use Next Step to show the leader's proposal, the individual votes and the QC. I would keep stepping until the first block becomes committed and point to the committed chain.", "dashboard preview step 操作 现场 共识"],
+        ["What changes when Alice sends Bob 10?", "Both start at 100. While it is pending, they still have 100 each and Alice's nonce is zero. Once the block commits, Alice has 90, Bob has 110, Charlie stays at 100, and Alice's nonce becomes one.", "example worked balance 90 110 success 成功 示例", true],
+        ["Which failure case would you show live?", "After Alice sends 10, I would submit another transfer of 101 with her next nonce. It enters the pool, then execution rejects it for insufficient funds. Alice stays at 90, her nonce becomes two and the request leaves the pool.", "demo rejection 101 insufficient funds 余额不足 现场"],
+        ["What happens in the two transfers of 80 example?", "Starting at 100, Alice pays Bob 80 first and has 20 left. The next payment of 80 to Charlie is rejected. The final balances are 20, 180 and 100, and Alice's nonce is two.", "slides walkthrough 80 20 180 failed PPT 样例"],
+        ["Why might a submitted transfer appear to do nothing?", "It may still be pending or its block may only be certified. I would check that the simulator is running, then look for the block's committed status and its transaction receipt.", "troubleshoot start pause pending why balance no change 卡住"],
+        ["How would you show idempotency on the dashboard?", "I would retry the same signed request before commit and point out that there is still one pending ID. Then I would retry after execution and show that the receipt, balances and nonce remain unchanged.", "retry demo validate twice 界面 重试 幂等"],
+        ["What does Live nodes agree mean?", "The dashboard compares the committed chain, balances, nonces and both sets of receipts across live replicas. A crashed replica is excluded until it comes back online.", "consistent indicator status agreement 一致 状态"],
+      ] },
+      { label: "Tests & evidence", items: [
+        ["What are your test results?", "The full run on the report's revision passed 100 tests in tests and 41 in extensions_tests, for a total of 141. Those suites include integration checks and cover the recovery, Byzantine, batching and signing extensions.", "counts 141 100 41 test results 测试数量"],
+        ["Why do the slides and report have different test counts?", "The slides show an earlier Task B snapshot with 29 core and 23 extension tests. The archived Task B logs show 29 and 24 after an additional extension test. The report records 100 and 41 for the merged project, so I cite the run that matches the version I am discussing.", "29 23 24 discrepancy PPT old slides 测试数字 不一致"],
+        ["How did you test that balances change only after commitment?", "An integration test submits Alice to Bob for 10. It checks that she still has 100 after the second QC. When the third QC commits the first block, it checks the new balances and agreement across replicas.", "test_integration A3 A4 B3 before after 认证 提交"],
+        ["Did you test Task B apart from Task A?", "Yes. Isolated tests use a committed-history fixture to check execution rules directly. Integration tests go through the actual event queue and dispatch_qc to verify that consensus triggers execution.", "unit integration fixture isolated tests 隔离 集成"],
+        ["How did you test batch sizes?", "We ran seven one-unit transfers with limits one, two and five, checked every block against the limit, and checked the seven final receipts. All three runs ended with balances of 93, 107 and 100.", "test_batch seven 7 batching 93 107 批量测试"],
+        ["How did you verify retries and signature checks?", "The tests cover retries before and after commit, altered payloads, wrong keys and changed transaction IDs. They also check that a valid request can still execute after an invalid entry claims the same ID.", "test_security security boundaries signatures replay 安全测试"],
+        ["Did passing the tests prove the whole protocol correct?", "The tests show the expected results for the cases we exercised, including delivery orders, crashes and invalid requests. We did not formally verify all schedules or benchmark a real distributed deployment.", "proof beyond coverage test limitations formal 证明"],
+      ] },
+      { label: "Limits & contribution", items: [
+        ["Is this running on four physical machines?", "The four replicas run in one process. The event queue simulates messages and timeout ticks, so we can reproduce specific schedules and inspect each step.", "simulation networking one process network P2P 单进程 四台"],
+        ["What happens if the whole process restarts?", "The simulation returns to genesis. Its ledger, receipts, nonces and voting history are in memory. Recovery of an individual node works while a live peer still has the state.", "durability persistent storage process restart 重启 持久化"],
+        ["Are the classroom keys safe for real accounts?", "The keys are public test fixtures so that the browser and CLI can reproduce the same signatures. Real accounts would need private key storage, authenticated registration and a deployment-specific signing domain.", "security fixture production key management 教学密钥"],
+        ["What would you improve for a real deployment?", "I would start by running the replicas in separate processes and persisting votes, locks and committed state. Then I would add independently verifiable certificates and test network delays and partitions.", "limitation future work production scalability threshold 实际部署 改进"],
+        ["Did you measure throughput or latency?", "We ran correctness checks and used the dashboard to observe protocol events. We did not measure production throughput or network latency. The dashboard's step interval is for the demo.", "performance TPS benchmark timing 性能 延迟"],
+        ["Which part did you personally work on?", "Use your own work here. A short answer is: “I worked on [function or feature]. I tested [specific scenario], which showed [actual result]. My evidence is [commit or file].”", "contribution individual responsibility AI role commits 个人贡献 分工"],
+      ] },
+    ];
+
+    const questions = groups.flatMap(({label, items}) => items.map(
+      ([question, answer, keywords, priority = false]) => ({label, question, answer, keywords, priority})
+    ));
+    const filters = [
+      {label: "Start here", matches: item => item.priority},
+      {label: "All questions", matches: () => true},
+      ...groups.map(({label}) => ({label, matches: item => item.label === label})),
+    ];
+    const allQuestions = filters[1];
+    let activeFilter = filters[0];
+    const topics = document.querySelector("#topics");
+    const topicSelect = document.querySelector("#topic-select");
+    const cards = document.querySelector("#cards");
+    const input = document.querySelector("#search");
+    const clear = document.querySelector("#clear");
+    const status = document.querySelector("#results");
+    const empty = document.querySelector("#empty");
+
+    function words(text) {
+      return text.toLowerCase().replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    }
+
+    for (const item of questions) {
+      const details = document.createElement("details");
+      details.className = "card";
+      const summary = document.createElement("summary");
+      const heading = document.createElement("span");
+      const group = document.createElement("span");
+      group.className = "card-group";
+      group.textContent = item.label;
+      heading.append(group, document.createTextNode(item.question));
+      summary.append(heading);
+      const answer = document.createElement("p");
+      answer.className = "answer";
+      answer.lang = "en";
+      answer.textContent = item.answer;
+      details.append(summary, answer);
+      cards.append(details);
+      item.card = details;
+      item.group = group;
+      item.searchText = words([item.question, item.answer, item.label, item.keywords].join(" "));
+    }
+
+    function choose(filter) {
+      activeFilter = filter;
+      if (filter === filters[0]) input.value = "";
+      update();
+    }
+
+    for (const [index, filter] of filters.entries()) {
+      const button = document.createElement("button");
+      button.className = "topic";
+      button.type = "button";
+      const count = document.createElement("span");
+      count.className = "topic-count";
+      count.textContent = questions.filter(filter.matches).length;
+      button.append(document.createTextNode(filter.label), count);
+      button.addEventListener("click", () => choose(filter));
+      filter.button = button;
+      topics.append(button);
+      topicSelect.add(new Option(`${filter.label} (${count.textContent})`, String(index)));
+    }
+
+    function update() {
+      const tokens = words(input.value).split(" ").filter(Boolean);
+      if (tokens.length && activeFilter === filters[0]) activeFilter = allQuestions;
+      let matches = 0;
+      for (const item of questions) {
+        const visible = activeFilter.matches(item) && tokens.every(token => item.searchText.includes(token));
+        item.card.hidden = !visible;
+        item.group.hidden = activeFilter !== filters[0] && activeFilter !== allQuestions;
+        if (visible) matches += 1;
+      }
+      for (const filter of filters) {
+        filter.button.setAttribute("aria-pressed", String(filter === activeFilter));
+      }
+      topicSelect.value = String(filters.indexOf(activeFilter));
+      status.textContent = `${activeFilter.label} · ${matches} ${matches === 1 ? "question" : "questions"}`;
+      clear.hidden = !input.value;
+      empty.hidden = matches > 0;
+    }
+
+    document.querySelector("#search-form").addEventListener("submit", event => {
+      event.preventDefault();
+      update();
+    });
+    topicSelect.addEventListener("change", () => choose(filters[Number(topicSelect.value)]));
+    input.addEventListener("input", update);
+    clear.addEventListener("click", () => {
+      input.value = "";
+      input.focus();
+      update();
+    });
+    questions[0].card.open = true;
+    update();
+  </script>
+</body>
+</html>
