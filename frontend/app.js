@@ -109,6 +109,12 @@ document.querySelectorAll('[data-action]').forEach(button => {
     }
   });
 });
+$('double-proposal').addEventListener('click', () => {
+  mutate('/api/attacks', async () => {
+    const state = await api('/api/control/pause', {});
+    return {kind: 'equivocation', node_id: state.leader_id};
+  });
+});
 $('byzantine').addEventListener('change', event => mutate('/api/byzantine', {node_id: event.target.value ? Number(event.target.value) : null}));
 $('blocks').addEventListener('click', event => {
   const block = event.target.closest('[data-block]');
